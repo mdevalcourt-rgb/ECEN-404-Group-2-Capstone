@@ -1,0 +1,176 @@
+Added Component: Designator=J?(629105150921)
+Add component (AddParameter): Name = "Connector Type"; Value = "USB"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Contact Material"; Value = "Gold"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Contact Plating"; Value = "Gold"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Contact Resistance"; Value = "30mO"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Current Rating"; Value = "1.8A"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Features"; Value = "Shielded"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Gender"; Value = "Receptacle"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Height"; Value = "2.82mm"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Insulation Resistance"; Value = "1GO"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Max Operating Temperature"; Value = "85°C"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Min Operating Temperature"; Value = "-40°C"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mount"; Value = "Horizontal, Surface Mount"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "NexarPartId"; Value = "52645114"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Number of Contacts"; Value = "5"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Number of Pins"; Value = "5"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Operating Supply Voltage"; Value = "30V"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Orientation"; Value = "Horizontal"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Packaging"; Value = "Tape and Reel"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "REACH SVHC"; Value = "Unknown"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "RoHS"; Value = "Compliant"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Termination"; Value = "SMD/SMT"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "USB Standard"; Value = "USB 2.0"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Voltage Rating"; Value = "30V"; VariantName = "[No Variations]"
+Added Component: Designator=P?(62002011121)
+Add component (AddParameter): Name = "Contact Resistance"; Value = "20mO"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Current Rating"; Value = "2A"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Gender"; Value = "Male"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Lead Pitch"; Value = "2mm"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "NexarPartId"; Value = "61924788"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Number of Pins"; Value = "20"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Operating Supply Voltage"; Value = "200V"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Orientation"; Value = "Vertical"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "RoHS"; Value = "Non-Compliant"; VariantName = "[No Variations]"
+Added Pin To Net: NetName=3V3 Pin=IC?-2
+Added Pin To Net: NetName=3V3 Pin=P?-19
+Added Net: Name=3V3
+Added Pin To Net: NetName=EN Pin=IC?-3
+Added Pin To Net: NetName=EN Pin=P?-18
+Added Net: Name=EN
+Added Pin To Net: NetName=GND_1 Pin=IC?-1
+Added Pin To Net: NetName=GND_1 Pin=P?-20
+Added Net: Name=GND_1
+Added Pin To Net: NetName=GND Pin=IC?-40
+Added Pin To Net: NetName=GND Pin=IC?-41
+Added Pin To Net: NetName=GND Pin=IC?-42
+Added Pin To Net: NetName=GND Pin=IC?-43
+Added Pin To Net: NetName=GND Pin=IC?-44
+Added Pin To Net: NetName=GND Pin=IC?-45
+Added Pin To Net: NetName=GND Pin=IC?-46
+Added Pin To Net: NetName=GND Pin=IC?-47
+Added Pin To Net: NetName=GND Pin=IC?-48
+Added Pin To Net: NetName=GND Pin=IC?-49
+Added Pin To Net: NetName=GND Pin=J?-5
+Added Pin To Net: NetName=GND Pin=J?-Shell
+Added Pin To Net: NetName=GND Pin=J?-Shell
+Added Pin To Net: NetName=GND Pin=J?-Shell
+Added Pin To Net: NetName=GND Pin=J?-Shell
+Added Pin To Net: NetName=GND Pin=J?-Shell
+Added Pin To Net: NetName=GND Pin=J?-Shell
+Added Net: Name=GND
+Added Pin To Net: NetName=IO0 Pin=IC?-27
+Added Pin To Net: NetName=IO0 Pin=P?-7
+Added Net: Name=IO0
+Added Pin To Net: NetName=IO1 Pin=IC?-39
+Added Pin To Net: NetName=IO1 Pin=P?-19
+Added Net: Name=IO1
+Added Pin To Net: NetName=IO2 Pin=IC?-38
+Added Pin To Net: NetName=IO2 Pin=P?-18
+Added Net: Name=IO2
+Added Pin To Net: NetName=IO3 Pin=IC?-15
+Added Pin To Net: NetName=IO3 Pin=P?-6
+Added Net: Name=IO3
+Added Pin To Net: NetName=IO4 Pin=IC?-4
+Added Pin To Net: NetName=IO4 Pin=P?-17
+Added Net: Name=IO4
+Added Pin To Net: NetName=IO5 Pin=IC?-5
+Added Pin To Net: NetName=IO5 Pin=P?-16
+Added Net: Name=IO5
+Added Pin To Net: NetName=IO6 Pin=IC?-6
+Added Pin To Net: NetName=IO6 Pin=P?-15
+Added Net: Name=IO6
+Added Pin To Net: NetName=IO7 Pin=IC?-7
+Added Pin To Net: NetName=IO7 Pin=P?-14
+Added Net: Name=IO7
+Added Pin To Net: NetName=IO8 Pin=IC?-12
+Added Pin To Net: NetName=IO8 Pin=P?-9
+Added Net: Name=IO8
+Added Pin To Net: NetName=IO9 Pin=IC?-17
+Added Pin To Net: NetName=IO9 Pin=P?-4
+Added Net: Name=IO9
+Added Pin To Net: NetName=IO10 Pin=IC?-18
+Added Pin To Net: NetName=IO10 Pin=P?-3
+Added Net: Name=IO10
+Added Pin To Net: NetName=IO11 Pin=IC?-19
+Added Pin To Net: NetName=IO11 Pin=IC?-20
+Added Pin To Net: NetName=IO11 Pin=P?-1
+Added Pin To Net: NetName=IO11 Pin=P?-2
+Added Net: Name=IO11
+Added Pin To Net: NetName=IO13 Pin=IC?-21
+Added Pin To Net: NetName=IO13 Pin=P?-1
+Added Net: Name=IO13
+Added Pin To Net: NetName=IO14 Pin=IC?-22
+Added Pin To Net: NetName=IO14 Pin=P?-2
+Added Net: Name=IO14
+Added Pin To Net: NetName=IO15 Pin=IC?-8
+Added Pin To Net: NetName=IO15 Pin=P?-13
+Added Net: Name=IO15
+Added Pin To Net: NetName=IO16 Pin=IC?-9
+Added Pin To Net: NetName=IO16 Pin=P?-12
+Added Net: Name=IO16
+Added Pin To Net: NetName=IO17 Pin=IC?-10
+Added Pin To Net: NetName=IO17 Pin=P?-11
+Added Net: Name=IO17
+Added Pin To Net: NetName=IO18 Pin=IC?-11
+Added Pin To Net: NetName=IO18 Pin=P?-10
+Added Net: Name=IO18
+Added Pin To Net: NetName=IO19 Pin=IC?-13
+Added Pin To Net: NetName=IO19 Pin=P?-8
+Added Net: Name=IO19
+Added Pin To Net: NetName=IO20 Pin=IC?-14
+Added Pin To Net: NetName=IO20 Pin=P?-7
+Added Net: Name=IO20
+Added Pin To Net: NetName=IO21 Pin=IC?-23
+Added Pin To Net: NetName=IO21 Pin=P?-3
+Added Net: Name=IO21
+Added Pin To Net: NetName=IO35 Pin=IC?-28
+Added Pin To Net: NetName=IO35 Pin=P?-8
+Added Net: Name=IO35
+Added Pin To Net: NetName=IO36 Pin=IC?-29
+Added Pin To Net: NetName=IO36 Pin=P?-9
+Added Net: Name=IO36
+Added Pin To Net: NetName=IO37 Pin=IC?-30
+Added Pin To Net: NetName=IO37 Pin=P?-10
+Added Net: Name=IO37
+Added Pin To Net: NetName=IO38 Pin=IC?-31
+Added Pin To Net: NetName=IO38 Pin=P?-11
+Added Net: Name=IO38
+Added Pin To Net: NetName=IO39 Pin=IC?-32
+Added Pin To Net: NetName=IO39 Pin=P?-12
+Added Net: Name=IO39
+Added Pin To Net: NetName=IO40 Pin=IC?-33
+Added Pin To Net: NetName=IO40 Pin=P?-13
+Added Net: Name=IO40
+Added Pin To Net: NetName=IO41 Pin=IC?-34
+Added Pin To Net: NetName=IO41 Pin=P?-14
+Added Net: Name=IO41
+Added Pin To Net: NetName=IO42 Pin=IC?-35
+Added Pin To Net: NetName=IO42 Pin=P?-15
+Added Net: Name=IO42
+Added Pin To Net: NetName=IO45 Pin=IC?-26
+Added Pin To Net: NetName=IO45 Pin=P?-6
+Added Net: Name=IO45
+Added Pin To Net: NetName=IO46 Pin=IC?-16
+Added Pin To Net: NetName=IO46 Pin=P?-5
+Added Net: Name=IO46
+Added Pin To Net: NetName=IO47 Pin=IC?-24
+Added Pin To Net: NetName=IO47 Pin=P?-4
+Added Net: Name=IO47
+Added Pin To Net: NetName=IO48 Pin=IC?-25
+Added Pin To Net: NetName=IO48 Pin=P?-5
+Added Net: Name=IO48
+Added Pin To Net: NetName=RXD0 Pin=IC?-36
+Added Pin To Net: NetName=RXD0 Pin=P?-16
+Added Net: Name=RXD0
+Added Pin To Net: NetName=TXD0 Pin=IC?-37
+Added Pin To Net: NetName=TXD0 Pin=P?-17
+Added Net: Name=TXD0
+Added Pin To Net: NetName=USB_D_N Pin=J?-2
+Added Net: Name=USB_D_N
+Added Pin To Net: NetName=USB_D_P Pin=J?-3
+Added Net: Name=USB_D_P
+Added Differential Pair: Name=USB_D
+Added Member To Class: ClassName=Sheet1 Member=Component J? 629105150921
+Added Member To Class: ClassName=Sheet1 Member=Component P? 62002011121
+Added Rule: Name=Schematic Supply Nets

@@ -1,0 +1,10 @@
+Change Component Designator: OldDesignator=IC? NewDesignator=IC1
+Change Component Designator: OldDesignator=J? NewDesignator=J1
+Change Component Designator: OldDesignator=P? NewDesignator=P1
+Change Component Designator: OldDesignator=P? NewDesignator=P2
+Added Pin To Net: NetName=GND Pin=IC1-1
+Added Pin To Net: NetName=USB_D_N Pin=IC1-13
+Added Pin To Net: NetName=USB_D_P Pin=IC1-14
+Added Pin To Net: NetName=GND Pin=P1-20
+Added Pin To Net: NetName=GND Pin=P2-20
+Added Member To Class: ClassName=Sheet1 Member=Component P2 62002011121
