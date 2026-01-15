@@ -1,0 +1,98 @@
+#include <Wire.h>
+
+// --- CONFIGURATION ---
+// Standard ESP32 I2C pins (Adjust if your PCB uses different GPIOs)
+#define I2C_SDA 21 
+#define I2C_SCL 22
+
+// AD5245 I2C Address
+// Use 0x2C if AD0 pin is grounded. Use 0x2D if AD0 is tied to VCC.
+#define AD5245_ADDR 0x2C 
+
+// Current wiper position (0-255)
+int currentWiperPosition = 128; // Starts at mid-scale by default
+
+void setup() {
+  Serial.begin(115200);
+  
+  // Initialize I2C
+  Wire.begin(I2C_SDA, I2C_SCL);
+  
+  Serial.println("--- Power Supply Control ---");
+  Serial.println("Commands:");
+  Serial.println(" '+' : Increase Voltage (Step Up)");
+  Serial.println(" '-' : Decrease Voltage (Step Down)");
+  Serial.println(" 0-255 : Set specific wiper position");
+  Serial.println("----------------------------");
+
+  // Initialize Pot to mid-scale (safe starting point)
+  setDigiPot(currentWiperPosition);
+}
+
+void loop() {
+  if (Serial.available() > 0) {
+    String input = Serial.readStringUntil('\n');
+    input.trim(); // Remove whitespace
+
+    if (input.length() > 0) {
+      // Check for Step Up command
+      if (input == "+") {
+        if (currentWiperPosition < 1000000) {
+          currentWiperPosition++;
+          setDigiPot(currentWiperPosition);
+        } else {
+          Serial.println("Max voltage reached.");
+        }
+      }
+      // Check for Step Down command
+      else if (input == "-") {
+        if (currentWiperPosition > 0) {
+          currentWiperPosition--;
+          setDigiPot(currentWiperPosition);
+        } else {
+          Serial.println("Min voltage reached.");
+        }
+      }
+      // Check for direct numeric input
+      else {
+        int val = input.toInt();
+        // Validation to ensure it's a number and within range
+        if (val >= 0 && val <= 255) { 
+          currentWiperPosition = val;
+          setDigiPot(currentWiperPosition);
+        }
+      }
+    }
+  }
+}
+
+void setDigiPot(uint8_t position) {
+  Wire.beginTransmission(AD5245_ADDR);
+  
+  // Instruction Byte:
+  // The AD5245 requires an instruction byte before the data byte.
+  // Bit 7 is software shutdown (0 = active). 
+  // Bits 6-0 are don't care/reserved, usually 0.
+  Wire.write(0x00); 
+  
+  // Data Byte: The wiper position (0 to 255)
+  Wire.write(position);
+  
+  uint8_t error = Wire.endTransmission();
+
+  if (error == 0) {
+    Serial.print("Wiper Set to: ");
+    Serial.print(position);
+    
+    // Calculate theoretical resistance (approximate)
+    // R_WB = (Position/256) * 10k + Wiper_Resistance
+    float resistance = (float(position) / 256.0) * 10000.0;
+    Serial.print(" | Approx Res: ");
+    Serial.print(resistance);
+    Serial.println(" ohms");
+  } else {
+    Serial.print("I2C Error: ");
+    Serial.println(error);
+    Serial.println("Check SCL/SDA connections and AD0 address pin.");
+  }
+}
