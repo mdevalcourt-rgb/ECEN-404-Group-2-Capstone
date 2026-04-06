@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs wc:*)",
+      "Read(//c/Users/tasty/.claude/projects/c--Users-tasty-OneDrive-Documents-PlatformIO-Projects-WebsiteTotalMain-WebInterfaceV1-1/532b5a41-3239-4bd1-821c-bc5916d0478c/tool-results/**)",
+      "Read(//c/Users/tasty/OneDrive/Documents/PlatformIO/Projects/WebsiteTotalMain/**)",
+      "Read(//c/Users/tasty/OneDrive/Documents/PlatformIO/Projects/**)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\tasty\\OneDrive\\Documents\\PlatformIO\\Projects\\VoltmeterTest1\\webgui"
+    ]
+  }
+}
