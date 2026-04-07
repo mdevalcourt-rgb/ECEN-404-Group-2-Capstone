@@ -6,11 +6,16 @@
 #include "HttpServer.h"
 #include "Mic24045.h"
 #include "StartupLog.h"
+#include "OtaUpdater.h"
 #include "WiFiConnector.h"
 
 // Credentials for the ESP32-hosted WiFi network.
-constexpr const char *AP_SSID = "ESP32-Oscilloscope";
+constexpr const char *AP_SSID     = "ESP32-Oscilloscope";
 constexpr const char *AP_PASSWORD = "scopeview123";
+
+// OTA credentials.
+constexpr const char *OTA_HOSTNAME = "esp32-oscilloscope";
+constexpr const char *OTA_PASSWORD = "scopeota123";
 
 Ad7356Sampler  adcSampler;
 Ad9833Driver   wavegen;
@@ -66,6 +71,10 @@ void setup() {
   startAccessPoint(AP_SSID, AP_PASSWORD);
   logln("[SETUP] startAccessPoint() done");
 
+  logln("[SETUP] setupOTA()");
+  setupOTA(OTA_HOSTNAME, OTA_PASSWORD);
+  logln("[SETUP] setupOTA() done");
+
   logln("[SETUP] setupServerRoutes()");
   setupServerRoutes(adcSampler, adsSampler, mic, wavegen);
   logln("[SETUP] httpServer().begin()");
@@ -101,6 +110,7 @@ static void handleSerial() {
 }
 
 void loop() {
+  handleOTA();
   handleSerial();
   httpServer().handleClient();
 }
