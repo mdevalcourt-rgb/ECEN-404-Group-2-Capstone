@@ -452,10 +452,20 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
       <div class="control-group">
         <p class="control-title">Window — X axis</p>
         <div class="button-row">
+          <button class="window-btn active" id="mode-fast">Fast (60 kHz)</button>
+          <button class="window-btn" id="mode-slow">Slow (~170 Hz)</button>
+        </div>
+        <div class="button-row" id="fast-window-btns">
           <button class="window-btn" data-window-ms="1">1 ms</button>
           <button class="window-btn" data-window-ms="2">2 ms</button>
           <button class="window-btn active" data-window-ms="4">4 ms</button>
           <button class="window-btn" data-window-ms="8">8 ms</button>
+        </div>
+        <div class="button-row" id="slow-window-btns" style="display:none">
+          <button class="window-btn" data-window-ms="500">500 ms</button>
+          <button class="window-btn" data-window-ms="1000">1 s</button>
+          <button class="window-btn" data-window-ms="2000">2 s</button>
+          <button class="window-btn" data-window-ms="3000">3 s</button>
         </div>
         <label class="offset-input">
           <span>Custom (ms)</span>
@@ -639,7 +649,9 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
     const colors = ["#ff006e", "#00b4d8"];
     const labels = ["CH A", "CH B"];
     const pollIntervalMs  = 50;       // 20 fps display refresh
-    const kSampleRateHz   = 60000;    // fixed hardware sample rate
+    const kSampleRateHz   = 60000;    // nominal fast-mode hardware sample rate
+    let samplingMode      = "fast";   // "fast" | "slow"
+    let effectivePeriodUs = 17;       // inter-sample period sent to /adc/burst
     let maxWindowMs = 4.0;            // capture window in milliseconds
     let maxPoints   = Math.round(maxWindowMs * kSampleRateHz / 1000); // samples
     const series = labels.map(() => []);
@@ -840,7 +852,7 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
       const sliceA = chA.slice(startIdx, startIdx + maxPoints);
       const sliceB = chB.slice(startIdx, startIdx + maxPoints);
       const n = sliceA.length;
-      const intervalMs = 1000 / kSampleRateHz;
+      const intervalMs = effectivePeriodUs / 1000;
       const burstStartMs = Date.now() - (n - 1) * intervalMs;
       timestamps = sliceA.map((_, i) => burstStartMs + i * intervalMs);
       series[0] = sliceA;
@@ -867,7 +879,7 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
       for (let i = 1; i < n; i++) {
         if (data[i - 1] < mid && data[i] >= mid) crossings++;
       }
-      const durationSec = (n - 1) / kSampleRateHz;
+      const durationSec = (n - 1) * effectivePeriodUs / 1e6;
       const freq = crossings > 0 && durationSec > 0 ? crossings / durationSec : null;
       return { max, min, vpp, rms, freq };
     }
@@ -966,7 +978,7 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
 
       // X-axis time labels.
       {
-        const windowMs     = (maxPoints - 1) * 1000 / kSampleRateHz;
+        const windowMs     = (maxPoints - 1) * effectivePeriodUs / 1000;
         const tickInterval = calcNiceInterval(windowMs, isNarrow ? 3 : 5);
         const tickY        = top + geometry.plotHeight;
         ctx.strokeStyle    = "rgba(226, 232, 240, 0.35)";
@@ -984,9 +996,10 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
           ctx.moveTo(x, tickY);
           ctx.lineTo(x, tickY + 4);
           ctx.stroke();
-          const lbl = tMs === 0 ? "0"
-                    : tMs < 1   ? (tMs * 1000).toFixed(0) + "\u00b5s"
-                    :             tMs.toFixed(tMs < 10 ? 2 : 1) + " ms";
+          const lbl = tMs === 0    ? "0"
+                    : tMs < 1    ? (tMs * 1000).toFixed(0) + "\u00b5s"
+                    : tMs < 1000 ? tMs.toFixed(tMs < 10 ? 2 : 1) + " ms"
+                    :              (tMs / 1000).toFixed(tMs < 10000 ? 2 : 1) + " s";
           ctx.fillText(lbl, x, tickY + 6);
           tMs = +(tMs + tickInterval).toFixed(12);
         }
@@ -1195,24 +1208,63 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
     }
 
     function updateWindowLabel() {
-      const actualMs = (maxPoints - 1) * 1000 / kSampleRateHz;
-      windowLabelEl.textContent =
-        `${actualMs.toFixed(2)} ms @ ${(kSampleRateHz / 1000).toFixed(0)} kHz (${maxPoints} samples)`;
+      const rateHz   = Math.round(1e6 / effectivePeriodUs);
+      const actualMs = (maxPoints - 1) * effectivePeriodUs / 1000;
+      const rateStr  = rateHz >= 1000 ? `${(rateHz / 1000).toFixed(0)} kHz` : `${rateHz} Hz`;
+      const timeStr  = actualMs >= 1000 ? `${(actualMs / 1000).toFixed(2)} s` : `${actualMs.toFixed(2)} ms`;
+      windowLabelEl.textContent = `${timeStr} @ ${rateStr} (${maxPoints} samples)`;
     }
 
     function setSampleWindowMs(ms) {
-      const clamped = Math.max(0.1, Math.min(8.5, ms));
+      let clamped;
+      if (samplingMode === "fast") {
+        clamped           = Math.max(0.1, Math.min(8.5, ms));
+        effectivePeriodUs = 17;
+        maxPoints         = Math.max(2, Math.min(512, Math.round(clamped * kSampleRateHz / 1000)));
+        if (windowCustomInput) windowCustomInput.value = clamped.toFixed(2);
+      } else {
+        clamped           = Math.max(10, Math.min(3000, ms));
+        effectivePeriodUs = Math.max(17, Math.round(clamped * 1000 / 512));
+        maxPoints         = 512;
+        if (windowCustomInput) windowCustomInput.value = clamped.toFixed(0);
+      }
       maxWindowMs = clamped;
-      maxPoints   = Math.max(2, Math.min(512, Math.round(clamped * kSampleRateHz / 1000)));
-      if (windowCustomInput) windowCustomInput.value = clamped.toFixed(2);
-      windowButtons.forEach(btn =>
-        btn.classList.toggle("active", Math.abs(Number(btn.dataset.windowMs) - clamped) < 0.01)
-      );
+      windowButtons.forEach(btn => {
+        if (!btn.dataset.windowMs) return; // skip mode-toggle buttons
+        btn.classList.toggle("active", Math.abs(Number(btn.dataset.windowMs) - clamped) < 0.05);
+      });
       updateWindowLabel();
       enforceLengthLimit();
       ensureCursorValidity();
       drawGraph();
       renderMeasurements();
+    }
+
+    function setSamplingMode(mode) {
+      samplingMode = mode;
+      const fastRow = document.getElementById("fast-window-btns");
+      const slowRow = document.getElementById("slow-window-btns");
+      document.getElementById("mode-fast").classList.toggle("active", mode === "fast");
+      document.getElementById("mode-slow").classList.toggle("active", mode === "slow");
+      if (mode === "fast") {
+        if (fastRow) fastRow.style.display = "";
+        if (slowRow) slowRow.style.display = "none";
+        if (windowCustomInput) {
+          windowCustomInput.min  = "0.1";
+          windowCustomInput.max  = "8.5";
+          windowCustomInput.step = "0.1";
+        }
+        setSampleWindowMs(4.0);
+      } else {
+        if (fastRow) fastRow.style.display = "none";
+        if (slowRow) slowRow.style.display = "";
+        if (windowCustomInput) {
+          windowCustomInput.min  = "10";
+          windowCustomInput.max  = "3000";
+          windowCustomInput.step = "10";
+        }
+        setSampleWindowMs(1000);
+      }
     }
 
     function setDisplayRange(value) {
@@ -1519,9 +1571,15 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
       setCursorMode(null);
     }, { passive: false });
 
-    windowButtons.forEach(btn =>
-      btn.addEventListener("click", () => setSampleWindowMs(Number(btn.dataset.windowMs)))
-    );
+    const modeFastBtn = document.getElementById("mode-fast");
+    const modeSlowBtn = document.getElementById("mode-slow");
+    if (modeFastBtn) modeFastBtn.addEventListener("click", () => setSamplingMode("fast"));
+    if (modeSlowBtn) modeSlowBtn.addEventListener("click", () => setSamplingMode("slow"));
+
+    windowButtons.forEach(btn => {
+      if (!btn.dataset.windowMs) return; // skip mode-toggle buttons (no data-window-ms)
+      btn.addEventListener("click", () => setSampleWindowMs(Number(btn.dataset.windowMs)));
+    });
 
     if (windowCustomSetBtn) {
       windowCustomSetBtn.addEventListener("click", () => {
@@ -1620,7 +1678,7 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
         // When trigger is active, request up to 2× maxPoints so there is enough
         // pre-trigger data to reliably find the crossing edge.
         const burstN = triggerEnabled ? Math.min(512, maxPoints * 2) : maxPoints;
-        const response = await fetch(`/adc/burst?n=${burstN}`);
+        const response = await fetch(`/adc/burst?n=${burstN}&period_us=${effectivePeriodUs}`);
         const payload = await response.json();
         if (Array.isArray(payload.chA) && Array.isArray(payload.chB)) {
           loadBurst(payload.chA, payload.chB);

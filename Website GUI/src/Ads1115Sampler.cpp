@@ -112,7 +112,6 @@ AdsChannelResult Ads1115Sampler::measure(uint8_t ch) {
       const float est = kDiffM * result.rawAvg + kDiffB;
       result.value = applyPiecewiseCorrection(est, kDiffEst, kDiffErr,
                                               sizeof(kDiffEst) / sizeof(kDiffEst[0]));
-      if (result.value < 0.0f) result.value = 0.0f;
       break;
     }
   }

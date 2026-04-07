@@ -156,12 +156,13 @@ SampleSet Ad7356Sampler::read() const {
 // sample on the falling edge of CS, so leaving CS low for the whole burst would
 // result in DOUT going to 0 after the first 16 clocks.
 void Ad7356Sampler::readBurst(uint16_t *bufA, uint16_t *bufB,
-                               size_t count) const {
-  // Deadline scheduling: sample interval = 17 µs → ~58,824 Hz ≈ 60 kHz.
+                               size_t count, uint32_t periodUs) const {
+  // Deadline scheduling: each sample starts at a fixed interval (periodUs).
   // The interval is measured from the START of each conversion, so bit-bang
   // overhead (~4 µs for 16 SCLK cycles) is absorbed into the idle gap.
   // int32_t cast on the difference handles micros() wraparound correctly.
-  constexpr uint32_t kSamplePeriodUs = 17;
+  // Clamp to at least 17 µs — below that the ADC bit-bang overhead dominates.
+  const uint32_t kSamplePeriodUs = (periodUs < 17) ? 17 : periodUs;
   uint32_t deadline = micros();
   for (size_t s = 0; s < count; ++s) {
     while (static_cast<int32_t>(micros() - deadline) < 0) {}

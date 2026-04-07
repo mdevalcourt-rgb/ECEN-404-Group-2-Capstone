@@ -100,20 +100,27 @@ void setupServerRoutes(Ad7356Sampler &sampler, Ads1115Sampler &ads,
   });
 
   // Burst capture endpoint for oscilloscope display.
-  // GET /adc/burst?n=256  (n capped at 512)
-  // Returns pre-scaled voltages for both channels plus the measured sample rate.
+  // GET /adc/burst?n=256&period_us=17  (n capped at 512, period_us clamped to 17-100000)
+  // Returns pre-scaled voltages for both channels plus the actual sample period used.
   server.on("/adc/burst", [&sampler]() {
-    constexpr size_t kMaxBurst = 512;
+    constexpr size_t    kMaxBurst      = 512;
+    constexpr uint32_t  kMinPeriodUs   = 17;
+    constexpr uint32_t  kMaxPeriodUs   = 100000;
+
     const String nArg = server.arg("n");
     size_t n = nArg.length() ? static_cast<size_t>(nArg.toInt()) : 256;
-    if (n < 2)   n = 2;
+    if (n < 2)        n = 2;
     if (n > kMaxBurst) n = kMaxBurst;
+
+    const String periodArg = server.arg("period_us");
+    uint32_t periodUs = periodArg.length() ? static_cast<uint32_t>(periodArg.toInt()) : kMinPeriodUs;
+    if (periodUs < kMinPeriodUs) periodUs = kMinPeriodUs;
+    if (periodUs > kMaxPeriodUs) periodUs = kMaxPeriodUs;
 
     std::vector<uint16_t> bufA(n), bufB(n);
 
-    sampler.readBurst(bufA.data(), bufB.data(), n);
-    // Rate is fixed by deadline scheduling in readBurst(); report the nominal constant.
-    constexpr uint32_t sampleRateHz = Ad7356Sampler::kSampleRateHz;
+    sampler.readBurst(bufA.data(), bufB.data(), n, periodUs);
+    const uint32_t sampleRateHz = static_cast<uint32_t>(1000000UL / periodUs);
 
     // Build JSON: {"chA":[...],"chB":[...],"count":N,"sampleRateHz":R}
     String json;
@@ -132,6 +139,8 @@ void setupServerRoutes(Ad7356Sampler &sampler, Ads1115Sampler &ads,
     json += n;
     json += ",\"sampleRateHz\":";
     json += sampleRateHz;
+    json += ",\"samplePeriodUs\":";
+    json += periodUs;
     json += ",\"maxVoltage\":";
     json += String(kMaxVoltage, 2);
     json += '}';

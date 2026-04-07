@@ -25,9 +25,10 @@ class Ad7356Sampler {
   // Call once from setup() after begin().
   void diagnose() const;
   SampleSet read() const;
-  // Collect `count` back-to-back conversions as fast as GPIO allows.
+  // Collect `count` back-to-back conversions with the given inter-sample period.
   // bufA and bufB must each hold at least `count` uint16_t values (12-bit).
-  void readBurst(uint16_t *bufA, uint16_t *bufB, size_t count) const;
+  // periodUs: inter-sample period in microseconds (min 17 → ~59 kHz, default fast mode).
+  void readBurst(uint16_t *bufA, uint16_t *bufB, size_t count, uint32_t periodUs = 17) const;
   size_t channelCount() const { return kLabels.size(); }
   const char *label(size_t index) const { return kLabels[index]; }
 
