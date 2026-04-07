@@ -438,6 +438,88 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
       .card { padding: 1.25rem 1rem; border-radius: 1rem; }
       .status-bar { font-size: 0.82rem; gap: 0.5rem; }
     }
+    /* ── Help drawer ─────────────────────────────────────────── */
+    .help-btn {
+      position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 1000;
+      width: 3rem; height: 3rem; border-radius: 50%; padding: 0;
+      background: linear-gradient(120deg, #f97316, #fb7185);
+      border: none; color: #0f172a; font-size: 1.3rem; font-weight: 700;
+      cursor: pointer; box-shadow: 0 4px 24px rgba(249,115,22,0.35);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .help-btn:hover { filter: brightness(1.12); border-color: transparent; }
+    .help-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(2,6,23,0.55); z-index: 1001;
+    }
+    .help-overlay.open { display: block; }
+    .help-drawer {
+      position: fixed; top: 0; right: 0; bottom: 0;
+      width: min(420px, 100vw);
+      background: #0f172a; border-left: 1px solid rgba(148,163,184,0.2);
+      z-index: 1002; display: flex; flex-direction: column;
+      transform: translateX(100%); transition: transform 0.25s ease;
+    }
+    .help-drawer.open { transform: translateX(0); }
+    .help-drawer-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(148,163,184,0.15);
+      flex-shrink: 0;
+    }
+    .help-drawer-header h2 {
+      margin: 0; font-size: 1rem; letter-spacing: 0.25em;
+      text-transform: uppercase; color: #a5b4fc;
+    }
+    .help-close-btn {
+      background: none; border: none; color: #94a3b8;
+      font-size: 1.5rem; line-height: 1; cursor: pointer;
+      padding: 0.2rem 0.5rem; border-radius: 0.4rem;
+    }
+    .help-close-btn:hover { color: #f8fafc; background: rgba(148,163,184,0.1); border-color: transparent; }
+    .help-tabs {
+      display: flex; overflow-x: auto; border-bottom: 1px solid rgba(148,163,184,0.15);
+      flex-shrink: 0; scrollbar-width: none;
+    }
+    .help-tabs::-webkit-scrollbar { display: none; }
+    .help-tab {
+      flex-shrink: 0; border: none; border-radius: 0; background: none;
+      color: #94a3b8; font-size: 0.75rem; letter-spacing: 0.08em;
+      text-transform: uppercase; padding: 0.75rem 0.9rem;
+      border-bottom: 2px solid transparent; cursor: pointer;
+    }
+    .help-tab:hover { color: #f8fafc; background: rgba(148,163,184,0.07); border-color: transparent; }
+    .help-tab.active { color: #f97316; border-bottom-color: #f97316; }
+    .help-content {
+      overflow-y: auto; padding: 1.5rem; flex: 1;
+      font-size: 0.93rem; line-height: 1.75; color: #cbd5f5;
+    }
+    .help-content h2 { color: #f8fafc; font-size: 1.05rem; margin: 0 0 0.75rem; }
+    .help-content h3 {
+      color: #a5b4fc; font-size: 0.75rem; letter-spacing: 0.2em;
+      text-transform: uppercase; margin: 1.4rem 0 0.4rem;
+    }
+    .help-content p { margin: 0.4rem 0; }
+    .help-content ul, .help-content ol { margin: 0.4rem 0; padding-left: 1.3rem; }
+    .help-content li { margin: 0.2rem 0; }
+    .help-content strong { color: #f8fafc; }
+    .help-content table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.6rem 0; }
+    .help-content th {
+      color: #a5b4fc; text-align: left; padding: 0.35rem 0.6rem;
+      border-bottom: 1px solid rgba(148,163,184,0.25);
+      font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .help-content td { padding: 0.35rem 0.6rem; border-bottom: 1px solid rgba(148,163,184,0.1); vertical-align: top; }
+    .help-content blockquote {
+      margin: 0.7rem 0; padding: 0.55rem 1rem;
+      border-left: 3px solid #f97316; background: rgba(249,115,22,0.07);
+      border-radius: 0 0.4rem 0.4rem 0; color: #f1f5f9; font-size: 0.88rem;
+    }
+    .help-content pre {
+      background: rgba(2,6,23,0.8); border: 1px solid rgba(148,163,184,0.15);
+      border-radius: 0.5rem; padding: 0.7rem 1rem; overflow-x: auto;
+      font-size: 0.82rem; color: #94a3b8; margin: 0.6rem 0;
+    }
+    .help-content code { font-family: Consolas, monospace; }
   </style>
 </head>
 <body>
@@ -644,6 +726,30 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
     </section>
 
   </div>
+
+  <!-- Help button (fixed, bottom-right) -->
+  <button class="help-btn" id="help-open-btn" title="Help">?</button>
+
+  <!-- Backdrop -->
+  <div class="help-overlay" id="help-overlay"></div>
+
+  <!-- Slide-in drawer -->
+  <aside class="help-drawer" id="help-drawer">
+    <div class="help-drawer-header">
+      <h2>Help</h2>
+      <button class="help-close-btn" id="help-close-btn">&times;</button>
+    </div>
+    <div class="help-tabs" id="help-tabs">
+      <button class="help-tab active" data-help="0">Home</button>
+      <button class="help-tab" data-help="1">Scope</button>
+      <button class="help-tab" data-help="2">DC Voltage</button>
+      <button class="help-tab" data-help="3">Current</button>
+      <button class="help-tab" data-help="4">Resistance</button>
+      <button class="help-tab" data-help="5">Wavegen</button>
+      <button class="help-tab" data-help="6">PSU</button>
+    </div>
+    <div class="help-content" id="help-content"></div>
+  </aside>
 
   <script>
     const colors = ["#ff006e", "#00b4d8"];
@@ -1761,6 +1867,231 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
 
     window.addEventListener("resize", resizeCanvas);
     init();
+
+    // ── Help drawer ───────────────────────────────────────────────────────────
+    const helpPages = [
+      // 0: Home
+      `<h2>MADAM3 Quick Start</h2>
+      <p>Welcome to the MADAM3 bench instrument. This device provides four tools:</p>
+      <ul>
+        <li><strong>Oscilloscope</strong> &mdash; View and measure AC waveforms on two channels</li>
+        <li><strong>DMM</strong> &mdash; Measure DC voltage, current, and resistance</li>
+        <li><strong>Waveform Generator</strong> &mdash; Output sine, square, and triangle waves</li>
+        <li><strong>Power Supply</strong> &mdash; Adjustable and fixed voltage rails for your circuits</li>
+      </ul>
+      <h3>Before You Begin</h3>
+      <ol>
+        <li>Connect a jumper wire from any <strong>GND</strong> pin on the MADAM3 to your breadboard&rsquo;s ground rail. Do this before making any other connections.</li>
+        <li>All measurements and outputs share this common ground. Skipping this step will produce incorrect readings or damage components.</li>
+      </ol>
+      <h3>Pin Layout (Top to Bottom)</h3>
+      <table>
+        <tr><th>Location</th><th>Pins</th><th>Purpose</th></tr>
+        <tr><td>Top (BNC)</td><td>Channel A, Channel B</td><td>Oscilloscope inputs</td></tr>
+        <tr><td>Top (header)</td><td>GND, GND, Output</td><td>Waveform generator</td></tr>
+        <tr><td>Upper header</td><td>V_adj, GND, GND, &minus;5V</td><td>Power supply</td></tr>
+        <tr><td>Middle header</td><td>NC, NC, Current+, Current&minus;, GND, R out</td><td>DMM (current &amp; resistance)</td></tr>
+        <tr><td>Bottom header</td><td>NC, NC, V+, R in (+5V), GND, V&minus;</td><td>DMM (voltage) / +5V rail</td></tr>
+      </table>`,
+
+      // 1: Oscilloscope
+      `<h2>Oscilloscope</h2>
+      <p>Use the oscilloscope to view and measure <strong>AC signals</strong>. For DC voltage measurements, use the DMM tab instead.</p>
+      <h3>Pins Used</h3>
+      <table>
+        <tr><th>Pin</th><th>Location</th><th>Function</th></tr>
+        <tr><td><strong>Channel A</strong> (BNC)</td><td>Top left</td><td>Scope input &mdash; channel A</td></tr>
+        <tr><td><strong>Channel B</strong> (BNC)</td><td>Top right</td><td>Scope input &mdash; channel B</td></tr>
+      </table>
+      <p>Both channels are sampled simultaneously by the AD7356 dual 12-bit ADC at up to 60&thinsp;kHz.</p>
+      <h3>Wiring</h3>
+      <ol>
+        <li>Connect <strong>Channel A</strong> probe to the node you want to observe (typically V_in).</li>
+        <li>Connect <strong>Channel B</strong> probe to the second node (typically V_out).</li>
+        <li>Clip the probe ground leads to your breadboard ground rail.</li>
+      </ol>
+      <h3>Common Measurements</h3>
+      <p><strong>Amplitude</strong> &mdash; Read peak or peak-to-peak voltage directly from the display.</p>
+      <p><strong>Phase shift</strong> &mdash; Measure &Delta;t between matching peaks on Ch A and Ch B, then:</p>
+      <blockquote>&Delta;&phi; = 360 &times; &Delta;t &times; f</blockquote>
+      <p><strong>Period (T)</strong> &mdash; Time between two consecutive peaks. Frequency = 1&thinsp;/&thinsp;T.</p>
+      <p><strong>Time constant (&tau;)</strong> &mdash; Time for output to reach 63% of final value (charging) or decay to 37% (discharging).</p>
+      <p><strong>AC RMS Voltage</strong> &mdash; Displayed automatically for each channel.</p>
+      <h3>Tips</h3>
+      <ul>
+        <li>Adjust the <strong>timebase</strong> if the waveform looks too compressed or stretched.</li>
+        <li>Use <strong>Slow mode</strong> (up to 3&thinsp;s window) for low-frequency transient signals.</li>
+      </ul>`,
+
+      // 2: DMM Voltage
+      `<h2>DMM &mdash; DC Voltage</h2>
+      <p>Use this mode to measure DC voltage between two points in your circuit.</p>
+      <h3>Pins Used</h3>
+      <table>
+        <tr><th>Pin</th><th>Location</th><th>Function</th></tr>
+        <tr><td><strong>V+</strong></td><td>Bottom header, pin 3</td><td>Differential voltage input (+)</td></tr>
+        <tr><td><strong>V&minus;</strong></td><td>Bottom header, pin 6</td><td>Differential voltage input (&minus;)</td></tr>
+      </table>
+      <blockquote>V+ and V&minus; are <strong>measurement inputs only</strong> &mdash; they do not output any voltage. Do not use these pins to power your circuit.</blockquote>
+      <h3>Wiring</h3>
+      <ol>
+        <li>Connect <strong>V+</strong> to the higher-potential node in your circuit.</li>
+        <li>Connect <strong>V&minus;</strong> to the lower-potential node (often your ground rail).</li>
+        <li>Read the DC voltage from this screen.</li>
+      </ol>
+      <h3>Measuring Across a Component</h3>
+      <p>Place <strong>V+</strong> on one side and <strong>V&minus;</strong> on the other side of the component &mdash; not to ground.</p>
+      <h3>Verifying Your Power Supply</h3>
+      <ol>
+        <li>Connect <strong>V+</strong> to the V_adj output wire.</li>
+        <li>Connect <strong>V&minus;</strong> to GND.</li>
+        <li>Record the reading &mdash; this is your true supply voltage.</li>
+      </ol>`,
+
+      // 3: DMM Current
+      `<h2>DMM &mdash; Current</h2>
+      <p>Use this mode to measure DC current through a branch of your circuit. Current is always measured <strong>in series</strong> &mdash; the MADAM3 must be inserted into the current path.</p>
+      <h3>Pins Used</h3>
+      <table>
+        <tr><th>Pin</th><th>Location</th><th>Function</th></tr>
+        <tr><td><strong>Current+</strong></td><td>Middle header, pin 3</td><td>Connect to the more positive side</td></tr>
+        <tr><td><strong>Current&minus;</strong></td><td>Middle header, pin 4</td><td>Connect to the more negative side</td></tr>
+      </table>
+      <h3>Wiring</h3>
+      <ol>
+        <li><strong>Break</strong> the circuit at the point where you want to measure current.</li>
+        <li>Connect <strong>Current+</strong> to the side closer to the positive voltage source.</li>
+        <li>Connect <strong>Current&minus;</strong> to the side closer to ground.</li>
+        <li>The circuit is now complete through the MADAM3&rsquo;s internal sense path.</li>
+        <li>Read the current from this screen.</li>
+      </ol>
+      <h3>Example</h3>
+      <pre><code>Before:  ... &mdash;&mdash; R_L &mdash;&mdash; ...
+After:   ... &mdash; Current+ &mdash; MADAM3 &mdash; Current&minus; &mdash; R_L &mdash; ...</code></pre>
+      <h3>Safety</h3>
+      <ul>
+        <li>Supports up to <strong>&plusmn;5&thinsp;A</strong>.</li>
+        <li><strong>Never</strong> connect Current+ and Current&minus; directly across a voltage source &mdash; near-short-circuit.</li>
+        <li>Only insert into a branch that already has a load limiting the current.</li>
+      </ul>`,
+
+      // 4: DMM Resistance
+      `<h2>DMM &mdash; Resistance</h2>
+      <p>Use this mode to measure the resistance of a component. The component <strong>must be disconnected</strong> from your circuit before measuring.</p>
+      <h3>Pins Used</h3>
+      <table>
+        <tr><th>Pin</th><th>Location</th><th>Function</th></tr>
+        <tr><td><strong>R+</strong></td><td>Bottom header, pin 4 (R in / +5V)</td><td>5&thinsp;V source &mdash; connect to one leg</td></tr>
+        <tr><td><strong>R out</strong></td><td>Middle header, pin 6</td><td>Sense input &mdash; connect to the other leg</td></tr>
+      </table>
+      <h3>Wiring</h3>
+      <ol>
+        <li><strong>Remove</strong> the component from your breadboard circuit.</li>
+        <li>Connect <strong>R+</strong> to one leg of the component.</li>
+        <li>Connect the other leg to <strong>R out</strong>.</li>
+        <li>Read the resistance from this screen.</li>
+      </ol>
+      <h3>What You Can Measure</h3>
+      <ul>
+        <li>Fixed resistors &mdash; verify nominal values before building</li>
+        <li>Potentiometers &mdash; at minimum and maximum settings</li>
+        <li>Photoresistors &mdash; under different lighting conditions</li>
+        <li>Thermistors &mdash; at different temperatures</li>
+        <li>Inductor DC resistance (winding resistance, not inductance)</li>
+      </ul>
+      <blockquote><strong>Always disconnect</strong> the component first. Measuring in-circuit gives incorrect results because other components provide parallel current paths.</blockquote>
+      <h3>R in (+5V) as a Power Rail</h3>
+      <p>When not measuring resistance, <strong>R in (+5V)</strong> provides a fixed +5&thinsp;V source for op amp positive rails or logic gate V<sub>CC</sub>.</p>`,
+
+      // 5: Wavegen
+      `<h2>Waveform Generator</h2>
+      <p>Use the waveform generator to output AC signals into your circuit. Generated by the AD9833 DDS chip over SPI.</p>
+      <h3>Pins Used</h3>
+      <table>
+        <tr><th>Pin</th><th>Location</th><th>Function</th></tr>
+        <tr><td><strong>Output</strong></td><td>Top header, pin 3</td><td>Signal output</td></tr>
+        <tr><td><strong>GND</strong></td><td>Top header, pins 1&ndash;2</td><td>Signal return / ground reference</td></tr>
+      </table>
+      <h3>Wiring</h3>
+      <ol>
+        <li>Connect the <strong>Output</strong> pin to V_in of your circuit.</li>
+        <li>Connect one of the adjacent <strong>GND</strong> pins to your breadboard ground rail.</li>
+      </ol>
+      <h3>Common Lab Settings</h3>
+      <table>
+        <tr><th>Lab</th><th>Waveform</th><th>Frequency</th><th>Amplitude</th></tr>
+        <tr><td>RC/RL Transients</td><td>Square</td><td>20&thinsp;Hz</td><td>1&thinsp;V</td></tr>
+        <tr><td>AC Signals</td><td>Sine</td><td>30&thinsp;Hz</td><td>2&thinsp;V</td></tr>
+        <tr><td>Op Amp</td><td>Sine</td><td>30&thinsp;Hz</td><td>0.5&thinsp;V</td></tr>
+        <tr><td>Op Amp Integrator</td><td>Sine / Square / Triangle</td><td>30&thinsp;Hz</td><td>0.5&thinsp;V</td></tr>
+        <tr><td>Frequency Response</td><td>Sine</td><td>1&ndash;1200&thinsp;Hz</td><td>2&thinsp;V</td></tr>
+      </table>
+      <blockquote>The waveform generator <strong>does not support DC offset</strong>. All waveforms are centered around 0&thinsp;V.</blockquote>
+      <h3>Tips</h3>
+      <ul>
+        <li>Always use the GND pins adjacent to Output &mdash; do not rely on a GND connection elsewhere on the board.</li>
+        <li>When sweeping frequencies, adjust the oscilloscope timebase after each frequency change.</li>
+      </ul>`,
+
+      // 6: Power Supply
+      `<h2>Power Supply</h2>
+      <p>The MADAM3 provides three voltage rails for powering your circuits.</p>
+      <h3>Pins Used</h3>
+      <table>
+        <tr><th>Pin</th><th>Location</th><th>Function</th></tr>
+        <tr><td><strong>V_adj</strong></td><td>Upper header, pin 1</td><td>Adjustable: 0.64&ndash;5.25&thinsp;V</td></tr>
+        <tr><td><strong>&minus;5V</strong></td><td>Upper header, pin 4</td><td>Fixed &minus;5&thinsp;V output</td></tr>
+        <tr><td><strong>R in (+5V)</strong></td><td>Bottom header, pin 4</td><td>Fixed +5&thinsp;V output</td></tr>
+        <tr><td><strong>GND</strong></td><td>Multiple locations</td><td>Common ground (use any GND pin)</td></tr>
+      </table>
+      <blockquote>The <strong>V+</strong> and <strong>V&minus;</strong> pins on the bottom header are DMM measurement inputs only &mdash; they do not output voltage.</blockquote>
+      <h3>V_adj &mdash; Adjustable Supply</h3>
+      <ol>
+        <li>Connect <strong>V_adj</strong> to the positive rail of your breadboard.</li>
+        <li>Connect any <strong>GND</strong> pin to the breadboard ground rail.</li>
+        <li>Set the voltage on this screen and enable the output.</li>
+      </ol>
+      <h3>&minus;5V &mdash; Fixed Negative Rail</h3>
+      <p>Fixed &minus;5&thinsp;V output. No configuration needed. Connect to op amp V&minus; or V<sub>EE</sub> pin.</p>
+      <h3>R in (+5V) &mdash; Fixed +5V Rail</h3>
+      <p>Shared with the resistance checker. Use for op amp positive supply or logic gate V<sub>CC</sub> when not measuring resistance.</p>
+      <h3>Op Amp Wiring Summary</h3>
+      <table>
+        <tr><th>What</th><th>DC Input Labs</th><th>AC Input Labs</th></tr>
+        <tr><td>V_in (signal)</td><td>V_adj (e.g. 0.5&thinsp;V)</td><td>Waveform Generator Output</td></tr>
+        <tr><td>Op amp + rail</td><td>R in (+5V)</td><td>V_adj (set to 5.0&thinsp;V)</td></tr>
+        <tr><td>Op amp &minus; rail</td><td>&minus;5V</td><td>&minus;5V</td></tr>
+      </table>
+      <blockquote><strong>WARNING:</strong> Connecting +5&thinsp;V and &minus;5&thinsp;V to the wrong op amp pins will destroy the chip. Double-check polarity before enabling the supply.</blockquote>`
+    ];
+
+    (function () {
+      const drawer   = document.getElementById("help-drawer");
+      const overlay  = document.getElementById("help-overlay");
+      const openBtn  = document.getElementById("help-open-btn");
+      const closeBtn = document.getElementById("help-close-btn");
+      const content  = document.getElementById("help-content");
+      const tabs     = document.querySelectorAll(".help-tab");
+
+      let activeTab = 0;
+
+      function showPage(idx) {
+        activeTab = idx;
+        content.innerHTML = helpPages[idx];
+        content.scrollTop = 0;
+        tabs.forEach((t, i) => t.classList.toggle("active", i === idx));
+      }
+
+      function openDrawer()  { drawer.classList.add("open"); overlay.classList.add("open"); }
+      function closeDrawer() { drawer.classList.remove("open"); overlay.classList.remove("open"); }
+
+      openBtn.addEventListener("click", openDrawer);
+      closeBtn.addEventListener("click", closeDrawer);
+      overlay.addEventListener("click", closeDrawer);
+      tabs.forEach((tab, i) => tab.addEventListener("click", () => showPage(i)));
+
+      showPage(0);
+    })();
   </script>
 </body>
 </html>

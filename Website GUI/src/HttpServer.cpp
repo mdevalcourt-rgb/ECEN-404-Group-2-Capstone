@@ -20,17 +20,17 @@ WebServer server(80);
 // Extrapolate outside the measured range [2566, 3322] with the nearest segment.
 //   seg_0 (raw < 2817 or extrapolate below): slope=0.00099685, intercept=-2.0581263208
 //   seg_1 (raw >= 2817 or extrapolate above): slope=0.0009897887, intercept=-2.0382347119
-// Full ADC range 0–4095 maps to approximately −2.058 V to +2.015 V.
+// Full ADC range 0–4095 maps to approximately +2.058 V to −2.015 V (signal path is inverting).
 static float applyAdcCalibration(uint16_t raw) {
   const float adc = static_cast<float>(raw);
   if (adc < 2817.0f) {
-    return 0.00099685f * adc - 2.0581263208f;
+    return -(0.00099685f * adc - 2.0581263208f);
   }
-  return 0.0009897887f * adc - 2.0382347119f;
+  return -(0.0009897887f * adc - 2.0382347119f);
 }
 
 constexpr uint16_t kAdcMaxValue  = 4095;
-// Calibrated full-scale window: −2.058 V (raw=0) to +2.015 V (raw=4095) ≈ 4.073 V span.
+// Calibrated full-scale window: +2.058 V (raw=0) to −2.015 V (raw=4095) ≈ 4.073 V span.
 constexpr float    kMaxVoltage   = 4.073f;
 constexpr float kMinWaveOffset = -5.0f;
 constexpr float kMaxWaveOffset = 5.0f;
@@ -79,6 +79,25 @@ WebServer &httpServer() { return server; }
 
 void setupServerRoutes(Ad7356Sampler &sampler, Ads1115Sampler &ads,
                        Mic24045 &mic, Ad9833Driver &wave) {
+  // ---------------------------------------------------------------------------
+  // Captive portal — redirect OS connectivity probes to the main page.
+  // The DNS server (CaptivePortal.cpp) routes every hostname to 192.168.4.1,
+  // so these handlers receive the OS probes and return a redirect that causes
+  // the OS to detect a captive portal and auto-open the browser.
+  // ---------------------------------------------------------------------------
+  auto redirectToRoot = []() {
+    server.sendHeader("Location", "http://192.168.4.1/");
+    server.send(302, "text/plain", "");
+  };
+  server.on("/connecttest.txt",           redirectToRoot);  // Windows NCSI
+  server.on("/redirect",                  redirectToRoot);  // Windows fallback
+  server.on("/generate_204",              redirectToRoot);  // Android / Chrome
+  server.on("/hotspot-detect.html",       redirectToRoot);  // iOS / macOS
+  server.on("/library/test/success.html", redirectToRoot);  // older iOS
+  server.on("/success.txt",               redirectToRoot);  // Firefox
+  server.on("/canonical.html",            redirectToRoot);  // some Android
+  server.onNotFound(                      redirectToRoot);  // any other probe
+
   server.on("/", []() { server.send_P(200, "text/html", INDEX_HTML); });
 
   server.on("/adc", [&sampler]() {

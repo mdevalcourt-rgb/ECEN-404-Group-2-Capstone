@@ -6,6 +6,7 @@
 #include "HttpServer.h"
 #include "Mic24045.h"
 #include "StartupLog.h"
+#include "CaptivePortal.h"
 #include "OtaUpdater.h"
 #include "WiFiConnector.h"
 
@@ -71,6 +72,10 @@ void setup() {
   startAccessPoint(AP_SSID, AP_PASSWORD);
   logln("[SETUP] startAccessPoint() done");
 
+  logln("[SETUP] setupCaptivePortal()");
+  setupCaptivePortal();
+  logln("[SETUP] setupCaptivePortal() done");
+
   logln("[SETUP] setupOTA()");
   setupOTA(OTA_HOSTNAME, OTA_PASSWORD);
   logln("[SETUP] setupOTA() done");
@@ -110,6 +115,7 @@ static void handleSerial() {
 }
 
 void loop() {
+  handleCaptivePortal();
   handleOTA();
   handleSerial();
   httpServer().handleClient();
