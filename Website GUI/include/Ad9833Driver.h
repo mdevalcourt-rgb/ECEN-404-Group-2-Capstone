@@ -19,12 +19,13 @@ class Ad9833Driver {
   Ad9833Driver() = default;
   void begin();
 
-  // Apply all three parameters in one call.
-  // mode      : "sine" | "triangle" | "square"
-  // hz        : 0.1 – 12.5 MHz (AD9833 limit with 25 MHz MCLK)
+  // Apply all parameters in one call.
+  // mode         : "sine" | "triangle" | "square"
+  // hz           : 0.1 – 12.5 MHz (AD9833 limit with 25 MHz MCLK)
   // amplitudeVpp : desired peak-to-peak output in volts;
   //               hardware range ≈ 2.0–4.0 Vpp (1.0–2.0 Vpk with ×4 gain stage)
-  void apply(const String& mode, float hz, float amplitudeVpp);
+  // phaseDeg     : phase offset in degrees (0–360), written to PHASE0 register
+  void apply(const String& mode, float hz, float amplitudeVpp, float phaseDeg = 0.0f);
 
  private:
   // SPI pins
@@ -41,6 +42,9 @@ class Ad9833Driver {
   static constexpr uint16_t kCtrlTriangle = 0x2002;
   static constexpr uint16_t kCtrlSquare   = 0x2028;
 
+  // AD9833 phase register write prefix — DB15:DB14=11, DB13=0 → PHASE0
+  static constexpr uint16_t kPhase0Write = 0xC000;
+
   // MCP41010 amplitude stage:
   //   AD9833 max output ≈ 0.75 V peak → ×4 op-amp → 3.0 V peak max
   //   Vpot = (Vpk_desired / kGain) / kVinMax → ratio for digipot
@@ -49,6 +53,7 @@ class Ad9833Driver {
 
   void writeAD9833(uint16_t data);
   void setFrequency(float hz);
+  void setPhase(float degrees);
   void setWaveformShape(const String& mode);
   void setAmplitudeVpk(float vpk);
 };

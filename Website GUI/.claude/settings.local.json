@@ -4,7 +4,17 @@
       "Bash(xargs wc:*)",
       "Read(//c/Users/tasty/.claude/projects/c--Users-tasty-OneDrive-Documents-PlatformIO-Projects-WebsiteTotalMain-WebInterfaceV1-1/532b5a41-3239-4bd1-821c-bc5916d0478c/tool-results/**)",
       "Read(//c/Users/tasty/OneDrive/Documents/PlatformIO/Projects/WebsiteTotalMain/**)",
-      "Read(//c/Users/tasty/OneDrive/Documents/PlatformIO/Projects/**)"
+      "Read(//c/Users/tasty/OneDrive/Documents/PlatformIO/Projects/**)",
+      "WebFetch(domain:www.analog.com)",
+      "WebSearch",
+      "WebFetch(domain:hades.mech.northwestern.edu)",
+      "WebFetch(domain:sinneb.github.io)",
+      "WebFetch(domain:docs.cirkitdesigner.com)",
+      "WebFetch(domain:www.teachmemicro.com)",
+      "WebFetch(domain:datasheets.b-cdn.net)",
+      "WebFetch(domain:www.manualslib.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:ez.analog.com)"
     ],
     "additionalDirectories": [
       "c:\\Users\\tasty\\OneDrive\\Documents\\PlatformIO\\Projects\\VoltmeterTest1\\webgui"

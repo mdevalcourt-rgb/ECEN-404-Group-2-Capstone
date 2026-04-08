@@ -37,6 +37,15 @@ void Ad9833Driver::setFrequency(float hz) {
   // Note: do NOT send the final control word here — setWaveformShape() follows.
 }
 
+void Ad9833Driver::setPhase(float degrees) {
+  // Normalize to [0, 360) then convert to 12-bit register value.
+  degrees = fmod(degrees, 360.0f);
+  if (degrees < 0.0f) degrees += 360.0f;
+  const uint16_t phaseWord =
+      static_cast<uint16_t>(degrees * (4096.0f / 360.0f)) & 0x0FFF;
+  writeAD9833(kPhase0Write | phaseWord);
+}
+
 void Ad9833Driver::setWaveformShape(const String& mode) {
   uint16_t ctrl = kCtrlSine;
   if (mode == "triangle") ctrl = kCtrlTriangle;
@@ -63,8 +72,9 @@ void Ad9833Driver::setAmplitudeVpk(float vpk) {
 
 // ---------------------------------------------------------------------------
 
-void Ad9833Driver::apply(const String& mode, float hz, float amplitudeVpp) {
-  setFrequency(hz);
-  setWaveformShape(mode);
+void Ad9833Driver::apply(const String& mode, float hz, float amplitudeVpp, float phaseDeg) {
+  setFrequency(hz);      // sends RESET + FREQ0 words (RESET still asserted)
+  setPhase(phaseDeg);    // writes PHASE0 while RESET is still asserted
+  setWaveformShape(mode); // clears RESET — output starts with the new phase applied
   setAmplitudeVpk(amplitudeVpp / 2.0f);  // Vpp → Vpk
 }

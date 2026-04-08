@@ -34,6 +34,8 @@ constexpr uint16_t kAdcMaxValue  = 4095;
 constexpr float    kMaxVoltage   = 4.073f;
 constexpr float kMinWaveOffset = -5.0f;
 constexpr float kMaxWaveOffset = 5.0f;
+constexpr float kMinWavePhase  = 0.0f;
+constexpr float kMaxWavePhase  = 360.0f;
 constexpr float kMinWaveAmplitude = 0.0f;
 constexpr float kMaxWaveAmplitude = 5.0f;
 constexpr float kMinWaveFrequency = 0.1f;
@@ -45,6 +47,7 @@ struct WaveformConfig {
   float frequency = 1000.0f;  // Hz
   float amplitude = 1.0f;     // Vpp
   float offset = 0.0f;        // V
+  float phase = 0.0f;         // degrees (0–360)
 } waveformCfg;
 
 float clampWaveAmplitude(float value) {
@@ -53,6 +56,10 @@ float clampWaveAmplitude(float value) {
 
 float clampWaveOffset(float value) {
   return constrain(value, kMinWaveOffset, kMaxWaveOffset);
+}
+
+float clampWavePhase(float value) {
+  return constrain(value, kMinWavePhase, kMaxWavePhase);
 }
 
 float clampWaveFrequency(float value) {
@@ -70,6 +77,8 @@ String serializeControlState() {
   json += String(waveformCfg.amplitude, 2);
   json += ",\"offset\":";
   json += String(waveformCfg.offset, 2);
+  json += ",\"phase\":";
+  json += String(waveformCfg.phase, 2);
   json += "}}";
   return json;
 }
@@ -240,8 +249,9 @@ void setupServerRoutes(Ad7356Sampler &sampler, Ads1115Sampler &ads,
     waveformCfg.frequency = clampWaveFrequency(server.arg("frequency").toFloat());
     waveformCfg.amplitude = clampWaveAmplitude(server.arg("amplitude").toFloat());
     waveformCfg.offset = clampWaveOffset(server.arg("offset").toFloat());
+    waveformCfg.phase = clampWavePhase(server.arg("phase").toFloat());
 
-    wave.apply(waveformCfg.mode, waveformCfg.frequency, waveformCfg.amplitude);
+    wave.apply(waveformCfg.mode, waveformCfg.frequency, waveformCfg.amplitude, waveformCfg.phase);
 
     String json = "{\"waveform\":{\"mode\":\"";
     json += waveformCfg.mode;
@@ -251,6 +261,8 @@ void setupServerRoutes(Ad7356Sampler &sampler, Ads1115Sampler &ads,
     json += String(waveformCfg.amplitude, 2);
     json += ",\"offset\":";
     json += String(waveformCfg.offset, 2);
+    json += ",\"phase\":";
+    json += String(waveformCfg.phase, 2);
     json += "}}";
     server.send(200, "application/json", json);
   });

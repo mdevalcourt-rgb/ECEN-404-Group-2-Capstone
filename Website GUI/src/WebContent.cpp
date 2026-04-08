@@ -439,6 +439,40 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
       .status-bar { font-size: 0.82rem; gap: 0.5rem; }
     }
     /* ── Help drawer ─────────────────────────────────────────── */
+    /* ── Connection status pill ───────────────────────────────────────────── */
+    .conn-pill {
+      position: fixed; top: 1rem; left: 1rem; z-index: 900;
+      display: flex; align-items: center; gap: 0.4rem;
+      padding: 0.3rem 0.75rem 0.3rem 0.55rem; border-radius: 999px;
+      background: rgba(15,23,42,0.82); backdrop-filter: blur(6px);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em;
+      color: #94a3b8; user-select: none; pointer-events: none;
+      transition: color 0.4s ease;
+    }
+    .conn-dot {
+      width: 0.5rem; height: 0.5rem; border-radius: 50%; flex-shrink: 0;
+      background: #64748b;
+      transition: background 0.4s ease, box-shadow 0.4s ease;
+    }
+    /* live — green pulse */
+    .conn-pill.conn-live { color: #86efac; }
+    .conn-pill.conn-live .conn-dot {
+      background: #22c55e;
+      box-shadow: 0 0 0 0 rgba(34,197,94,0.5);
+      animation: conn-pulse 2s ease-out infinite;
+    }
+    /* slow — amber, no pulse */
+    .conn-pill.conn-slow { color: #fcd34d; }
+    .conn-pill.conn-slow .conn-dot { background: #f59e0b; box-shadow: none; }
+    /* dead — red, no pulse */
+    .conn-pill.conn-dead { color: #fca5a5; }
+    .conn-pill.conn-dead .conn-dot { background: #ef4444; box-shadow: none; }
+    @keyframes conn-pulse {
+      0%   { box-shadow: 0 0 0 0   rgba(34,197,94,0.55); }
+      70%  { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
+      100% { box-shadow: 0 0 0 0   rgba(34,197,94,0); }
+    }
     .help-btn {
       position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 1000;
       width: 3rem; height: 3rem; border-radius: 50%; padding: 0;
@@ -719,6 +753,10 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
               <label for="waveform-offset">Offset (V)</label>
               <input id="waveform-offset" type="number" min="-5" max="5" step="0.1" value="0.0" />
             </div>
+            <div class="waveform-field">
+              <label for="waveform-phase">Phase (&deg;)</label>
+              <input id="waveform-phase" type="number" min="0" max="360" step="1" value="0" />
+            </div>
           </div>
           <p class="waveform-status" id="waveform-status">Waiting for selection…</p>
         </div>
@@ -728,6 +766,10 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
   </div>
 
   <!-- Help button (fixed, bottom-right) -->
+  <div class="conn-pill" id="conn-pill">
+    <span class="conn-dot" id="conn-dot"></span>
+    <span id="conn-label">Connecting&hellip;</span>
+  </div>
   <button class="help-btn" id="help-open-btn" title="Help">?</button>
 
   <!-- Backdrop -->
@@ -776,6 +818,7 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
     const cursorColors = { A: "#facc15", B: "#38bdf8" };
     let pollHandle = null;
     let dpr = 1;
+    let lastSuccessMs = Date.now();  // updated on every successful ESP32 fetch
     const geometry = { left: 60, right: 20, top: 20, bottom: 70, plotWidth: 0, plotHeight: 0, stepX: 0 };
 
     const canvas = document.getElementById("graph");
@@ -817,6 +860,7 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
     const waveformFrequencyEl = document.getElementById("waveform-frequency");
     const waveformAmplitudeEl = document.getElementById("waveform-amplitude");
     const waveformOffsetEl = document.getElementById("waveform-offset");
+    const waveformPhaseEl  = document.getElementById("waveform-phase");
     let activeWaveform = "square";
 
     function clampRatio(value) {
@@ -916,6 +960,40 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
       const msPart = String(date.getMilliseconds()).padStart(3, "0");
       return `${time}.${msPart}`;
     }
+
+    // ── Connection status indicator ───────────────────────────────────────────
+    const connPill  = document.getElementById("conn-pill");
+    const connLabel = document.getElementById("conn-label");
+
+    function markConnected() {
+      lastSuccessMs = Date.now();
+    }
+
+    function updateConnectionStatus() {
+      const gapMs = Date.now() - lastSuccessMs;
+      connPill.classList.remove("conn-live", "conn-slow", "conn-dead");
+      if (gapMs < 3000) {
+        connPill.classList.add("conn-live");
+        connLabel.textContent = "Live";
+      } else if (gapMs < 6000) {
+        connPill.classList.add("conn-slow");
+        connLabel.textContent = "Slow";
+      } else {
+        connPill.classList.add("conn-dead");
+        connLabel.textContent = "No signal";
+      }
+    }
+
+    // Heartbeat: poll /control-state every 2 s regardless of scope/DMM activity.
+    setInterval(async () => {
+      try {
+        const r = await fetch("/control-state");
+        if (r.ok) markConnected();
+      } catch (_) { /* gap widens — indicator will update on next checker tick */ }
+    }, 2000);
+
+    // Checker: evaluate gap and update pill every second.
+    setInterval(updateConnectionStatus, 1000);
 
     function schedulePoll() {
       if (pollHandle) {
@@ -1495,14 +1573,21 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
       return Math.min(5, Math.max(-5, value));
     }
 
+    function clampWaveformPhase(value) {
+      if (typeof value !== "number" || Number.isNaN(value)) return 0;
+      return Math.min(360, Math.max(0, value));
+    }
+
     function getWaveformPayload() {
       const frequency = clampWaveformFrequency(parseFloat(waveformFrequencyEl?.value));
       const amplitude = clampWaveformAmplitude(parseFloat(waveformAmplitudeEl?.value));
       const offset = clampWaveformOffset(parseFloat(waveformOffsetEl?.value));
+      const phase = clampWaveformPhase(parseFloat(waveformPhaseEl?.value));
       if (waveformFrequencyEl) waveformFrequencyEl.value = frequency;
       if (waveformAmplitudeEl) waveformAmplitudeEl.value = amplitude;
       if (waveformOffsetEl) waveformOffsetEl.value = offset;
-      return { frequency, amplitude, offset };
+      if (waveformPhaseEl) waveformPhaseEl.value = phase;
+      return { frequency, amplitude, offset, phase };
     }
 
     async function setWaveform(type) {
@@ -1517,7 +1602,8 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
           type,
           frequency: payload.frequency.toString(),
           amplitude: payload.amplitude.toString(),
-          offset: payload.offset.toString()
+          offset: payload.offset.toString(),
+          phase: payload.phase.toString()
         });
         const res = await fetch(`/waveform?${params.toString()}`, { method: "POST" });
         const data = await res.json().catch(() => ({}));
@@ -1535,6 +1621,9 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
         }
         if (typeof confirmedCfg.offset === "number" && waveformOffsetEl) {
           waveformOffsetEl.value = clampWaveformOffset(confirmedCfg.offset);
+        }
+        if (typeof confirmedCfg.phase === "number" && waveformPhaseEl) {
+          waveformPhaseEl.value = clampWaveformPhase(confirmedCfg.phase);
         }
       } catch (error) {
         console.error("Waveform request failed", error);
@@ -1569,6 +1658,9 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
         if (waveformOffsetEl && typeof state.waveform.offset === "number") {
           waveformOffsetEl.value = clampWaveformOffset(state.waveform.offset);
         }
+        if (waveformPhaseEl && typeof state.waveform.phase === "number") {
+          waveformPhaseEl.value = clampWaveformPhase(state.waveform.phase);
+        }
       }
     }
 
@@ -1578,6 +1670,7 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
         if (!response.ok) {
           throw new Error("Bad status");
         }
+        markConnected();
         const state = await response.json();
         applyControlState(state);
       } catch (error) {
@@ -1787,6 +1880,7 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
         const response = await fetch(`/adc/burst?n=${burstN}&period_us=${effectivePeriodUs}`);
         const payload = await response.json();
         if (Array.isArray(payload.chA) && Array.isArray(payload.chB)) {
+          markConnected();
           loadBurst(payload.chA, payload.chB);
           updateWindowLabel();
           updateLegend();
@@ -1827,6 +1921,7 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
         try {
           const response = await fetch(`/ads/measure?ch=${ch}`);
           if (!response.ok) throw new Error("Bad status");
+          markConnected();
           const data = await response.json();
           if (valueEl) {
             if (ch === 0) {
