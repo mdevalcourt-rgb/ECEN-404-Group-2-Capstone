@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"c:\\\\Users\\\\tasty\\\\OneDrive\\\\Documents\\\\PlatformIO\\\\Projects\\\\WebsiteTotalMain\\\\WebInterfaceV1.1\" /b)"
+    ]
+  }
+}

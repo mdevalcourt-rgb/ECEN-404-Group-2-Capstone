@@ -17,3 +17,12 @@ A self-contained, browser-accessible bench instrument built across 4 custom PCBs
 - **PlatformIO** on **ESP32-S3** (Arduino framework)
 - Vanilla HTML/CSS/JavaScript single-page app embedded in firmware flash
 - Python calibration scripts generating empirical piecewise linear fits for all ADC channels
+
+## Documentation
+
+See [README/SETUP_GUIDE.md](README/SETUP_GUIDE.md) for:
+
+- Step-by-step setup instructions for VS Code, PlatformIO, and Claude Code
+- Build and flash instructions (USB and OTA)
+- Running the web GUI mock server without hardware
+- Full web GUI user guide (oscilloscope, DMM, waveform generator, power supply)
