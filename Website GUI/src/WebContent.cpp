@@ -439,6 +439,56 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
       .status-bar { font-size: 0.82rem; gap: 0.5rem; }
     }
     /* ── Help drawer ─────────────────────────────────────────── */
+    /* ── Dev mode bar + panel ─────────────────────────────────────────────── */
+    .dev-bar {
+      display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 1100;
+      height: 1.75rem; background: #facc15; color: #000;
+      font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      align-items: center; justify-content: center; gap: 0.5rem;
+      cursor: pointer; user-select: none;
+    }
+    .dev-bar.visible { display: flex; }
+    .dev-bar-chevron { font-size: 0.65rem; transition: transform 0.2s; }
+    .dev-bar.panel-open .dev-bar-chevron { transform: rotate(180deg); }
+    .dev-panel {
+      position: fixed; top: 1.75rem; left: 0; bottom: 0; z-index: 1099;
+      width: 300px; background: #0f172a; border-right: 1px solid rgba(255,255,255,0.08);
+      display: flex; flex-direction: column; transform: translateX(-100%);
+      transition: transform 0.25s ease; overflow: hidden;
+    }
+    .dev-panel.open { transform: translateX(0); }
+    .dev-panel-header {
+      padding: 0.75rem 1rem 0.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em;
+      color: #facc15; text-transform: uppercase;
+    }
+    .dev-panel-body { flex: 1; overflow-y: auto; padding: 0.75rem 1rem 1rem; }
+    .dev-section-title {
+      font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em;
+      color: #475569; text-transform: uppercase;
+      margin: 0.9rem 0 0.4rem; padding-bottom: 0.25rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .dev-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem 0.6rem;
+      margin-bottom: 0.35rem;
+    }
+    .dev-row.full { grid-template-columns: 1fr; }
+    .dev-field { display: flex; flex-direction: column; gap: 0.15rem; }
+    .dev-field label {
+      font-size: 0.6rem; color: #64748b; letter-spacing: 0.04em; white-space: nowrap;
+    }
+    .dev-field input, .dev-field select {
+      background: #1e293b; border: 1px solid #334155; border-radius: 4px;
+      color: #e2e8f0; font-size: 0.72rem; padding: 0.25rem 0.4rem;
+      width: 100%; box-sizing: border-box;
+    }
+    .dev-field input:focus, .dev-field select:focus {
+      outline: none; border-color: #facc15;
+    }
+    body.is-dev .conn-pill { top: calc(1rem + 1.75rem); }
+
     /* ── Connection status pill ───────────────────────────────────────────── */
     .conn-pill {
       position: fixed; top: 1rem; left: 1rem; z-index: 900;
@@ -557,6 +607,106 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
   </style>
 </head>
 <body>
+  <!-- Dev mode bar (visible only on localhost) -->
+  <div class="dev-bar" id="dev-bar">
+    &#9964; Self-Host Dev Mode
+    <span class="dev-bar-chevron" id="dev-bar-chevron">&#9660;</span>
+  </div>
+
+  <!-- Dev panel (left-side drawer, localhost only) -->
+  <aside class="dev-panel" id="dev-panel">
+    <div class="dev-panel-header">Fake Data Controls</div>
+    <div class="dev-panel-body">
+
+      <div class="dev-section-title">Oscilloscope &mdash; CH A</div>
+      <div class="dev-row">
+        <div class="dev-field">
+          <label>Shape</label>
+          <select id="dev-chA-shape">
+            <option value="sine">Sine</option>
+            <option value="square">Square</option>
+            <option value="triangle">Triangle</option>
+          </select>
+        </div>
+        <div class="dev-field">
+          <label>Frequency (Hz)</label>
+          <input id="dev-chA-freq" type="number" min="1" max="30000" step="10" value="1000" />
+        </div>
+      </div>
+      <div class="dev-row">
+        <div class="dev-field">
+          <label>Amplitude (V pk)</label>
+          <input id="dev-chA-amp" type="number" min="0" max="2" step="0.05" value="1.5" />
+        </div>
+        <div class="dev-field">
+          <label>Phase (&deg;)</label>
+          <input id="dev-chA-phase" type="number" min="0" max="360" step="1" value="0" />
+        </div>
+      </div>
+
+      <div class="dev-section-title">Oscilloscope &mdash; CH B</div>
+      <div class="dev-row">
+        <div class="dev-field">
+          <label>Shape</label>
+          <select id="dev-chB-shape">
+            <option value="sine">Sine</option>
+            <option value="square">Square</option>
+            <option value="triangle">Triangle</option>
+          </select>
+        </div>
+        <div class="dev-field">
+          <label>Frequency (Hz)</label>
+          <input id="dev-chB-freq" type="number" min="1" max="30000" step="10" value="1000" />
+        </div>
+      </div>
+      <div class="dev-row">
+        <div class="dev-field">
+          <label>Amplitude (V pk)</label>
+          <input id="dev-chB-amp" type="number" min="0" max="2" step="0.05" value="1.0" />
+        </div>
+        <div class="dev-field">
+          <label>Phase (&deg;)</label>
+          <input id="dev-chB-phase" type="number" min="0" max="360" step="1" value="90" />
+        </div>
+      </div>
+
+      <div class="dev-section-title">Oscilloscope &mdash; Shared</div>
+      <div class="dev-row full">
+        <div class="dev-field">
+          <label>Noise (V rms)</label>
+          <input id="dev-noise" type="number" min="0" max="0.5" step="0.005" value="0.02" />
+        </div>
+      </div>
+
+      <div class="dev-section-title">DMM</div>
+      <div class="dev-row">
+        <div class="dev-field">
+          <label>DC Voltage (V)</label>
+          <input id="dev-dmm-voltage" type="number" min="-2" max="2" step="0.01" value="3.3" />
+        </div>
+        <div class="dev-field">
+          <label>Current (A)</label>
+          <input id="dev-dmm-current" type="number" min="0" max="5" step="0.001" value="0.15" />
+        </div>
+      </div>
+      <div class="dev-row full">
+        <div class="dev-field">
+          <label>Resistance (&Omega;)</label>
+          <input id="dev-dmm-resistance" type="number" min="0" max="1000000" step="1" value="470" />
+        </div>
+      </div>
+
+      <div class="dev-section-title">PSU</div>
+      <div class="dev-row full">
+        <div class="dev-field">
+          <label>Supply Voltage (V)</label>
+          <input id="dev-psu-voltage" type="number" min="0.64" max="5.25" step="0.01" value="3.3" />
+        </div>
+      </div>
+
+    </div>
+  </aside>
+
   <div class="card">
     <p class="eyebrow">WEB OSCILLOSCOPE</p>
     <h1>ADC STREAM</h1>
@@ -1962,6 +2112,75 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
 
     window.addEventListener("resize", resizeCanvas);
     init();
+
+    // ── Dev mode (localhost only) ─────────────────────────────────────────────
+    (function () {
+      if (window.location.hostname !== "localhost") return;
+
+      // Show bar, push conn-pill down.
+      const devBar   = document.getElementById("dev-bar");
+      const devPanel = document.getElementById("dev-panel");
+      document.body.classList.add("is-dev");
+      devBar.classList.add("visible");
+
+      // Toggle panel open/close when the bar is clicked.
+      devBar.addEventListener("click", () => {
+        const open = devPanel.classList.toggle("open");
+        devBar.classList.toggle("panel-open", open);
+      });
+
+      // Load current config from the mock server on startup.
+      fetch("/dev/config").then(r => r.json()).then(cfg => {
+        const sa = cfg.scope?.chA || {};
+        const sb = cfg.scope?.chB || {};
+        const dm = cfg.dmm || {};
+        const ps = cfg.psu || {};
+        if (sa.shape)     document.getElementById("dev-chA-shape").value = sa.shape;
+        if (sa.frequency) document.getElementById("dev-chA-freq").value  = sa.frequency;
+        if (sa.amplitude) document.getElementById("dev-chA-amp").value   = sa.amplitude;
+        if (sa.phase !== undefined) document.getElementById("dev-chA-phase").value = sa.phase;
+        if (sb.shape)     document.getElementById("dev-chB-shape").value = sb.shape;
+        if (sb.frequency) document.getElementById("dev-chB-freq").value  = sb.frequency;
+        if (sb.amplitude) document.getElementById("dev-chB-amp").value   = sb.amplitude;
+        if (sb.phase !== undefined) document.getElementById("dev-chB-phase").value = sb.phase;
+        if (cfg.scope?.noise !== undefined) document.getElementById("dev-noise").value = cfg.scope.noise;
+        if (dm.voltage    !== undefined) document.getElementById("dev-dmm-voltage").value    = dm.voltage;
+        if (dm.current    !== undefined) document.getElementById("dev-dmm-current").value    = dm.current;
+        if (dm.resistance !== undefined) document.getElementById("dev-dmm-resistance").value = dm.resistance;
+        if (ps.voltage    !== undefined) document.getElementById("dev-psu-voltage").value    = ps.voltage;
+      }).catch(() => {});
+
+      // Post a partial config update when any input changes.
+      function postDevConfig(patch) {
+        fetch("/dev/config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(patch),
+        }).catch(() => {});
+      }
+
+      // Wire each input to the corresponding config key.
+      const bindings = [
+        ["dev-chA-shape", patch => ({ scope: { chA: { shape:     patch } } })],
+        ["dev-chA-freq",  patch => ({ scope: { chA: { frequency: parseFloat(patch) } } })],
+        ["dev-chA-amp",   patch => ({ scope: { chA: { amplitude: parseFloat(patch) } } })],
+        ["dev-chA-phase", patch => ({ scope: { chA: { phase:     parseFloat(patch) } } })],
+        ["dev-chB-shape", patch => ({ scope: { chB: { shape:     patch } } })],
+        ["dev-chB-freq",  patch => ({ scope: { chB: { frequency: parseFloat(patch) } } })],
+        ["dev-chB-amp",   patch => ({ scope: { chB: { amplitude: parseFloat(patch) } } })],
+        ["dev-chB-phase", patch => ({ scope: { chB: { phase:     parseFloat(patch) } } })],
+        ["dev-noise",     patch => ({ scope: { noise: parseFloat(patch) } })],
+        ["dev-dmm-voltage",    patch => ({ dmm: { voltage:    parseFloat(patch) } })],
+        ["dev-dmm-current",    patch => ({ dmm: { current:    parseFloat(patch) } })],
+        ["dev-dmm-resistance", patch => ({ dmm: { resistance: parseFloat(patch) } })],
+        ["dev-psu-voltage",    patch => ({ psu: { voltage:    parseFloat(patch) } })],
+      ];
+      bindings.forEach(([id, toPatch]) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener("change", () => postDevConfig(toPatch(el.value)));
+      });
+    })();
 
     // ── Help drawer ───────────────────────────────────────────────────────────
     const helpPages = [
