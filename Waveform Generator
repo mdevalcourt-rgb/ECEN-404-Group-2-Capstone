@@ -1,1 +1,197 @@
+#include <SPI.h>
 
+#define AD9833_FSYNC 5
+#define POT_CS 17
+#define MCLK 25000000.0   // 25 MHz oscillator
+
+//------------------------------------------------
+// SPI write to AD9833
+//------------------------------------------------
+void writeAD9833(uint16_t data)
+{
+  SPI.beginTransaction(SPISettings(500000, MSBFIRST, SPI_MODE2));
+
+  digitalWrite(AD9833_FSYNC, LOW);
+  delayMicroseconds(1);
+
+  SPI.transfer16(data);
+
+  delayMicroseconds(1);
+  digitalWrite(AD9833_FSYNC, HIGH);
+
+  SPI.endTransaction();
+}
+
+//------------------------------------------------
+// Set DDS Frequency
+//------------------------------------------------
+void setFrequency(float freq)
+{
+  uint32_t freqWord = (uint32_t)((freq * 268435456.0) / MCLK);
+
+  uint16_t LSB = (freqWord & 0x3FFF) | 0x4000;
+  uint16_t MSB = ((freqWord >> 14) & 0x3FFF) | 0x4000;
+
+  writeAD9833(0x2100);
+  writeAD9833(LSB);
+  writeAD9833(MSB);
+  writeAD9833(0x2000);
+}
+
+//------------------------------------------------
+// Waveform Selection
+//------------------------------------------------
+void setSine()     { writeAD9833(0x2000); }
+void setTriangle() { writeAD9833(0x2002); }
+void setSquare()   { writeAD9833(0x2028); }
+
+//------------------------------------------------
+// Set Phase (0–360 degrees)
+//------------------------------------------------
+void setPhase(float degrees)
+{
+  while (degrees < 0) degrees += 360;
+  while (degrees >= 360) degrees -= 360;
+
+  uint16_t phaseWord = (uint16_t)((degrees / 360.0) * 4096);
+
+  writeAD9833(0xC000 | (phaseWord & 0x0FFF));
+
+  Serial.print("Phase set to ");
+  Serial.print(degrees);
+  Serial.println(" degrees");
+}
+
+//------------------------------------------------
+// MCP41010 amplitude control
+//------------------------------------------------
+void setAmplitudeRaw(uint8_t value)
+{
+  SPI.beginTransaction(SPISettings(500000, MSBFIRST, SPI_MODE0));
+
+  digitalWrite(POT_CS, LOW);
+  delayMicroseconds(1);
+
+  SPI.transfer(0x11);
+  SPI.transfer(value);
+
+  delayMicroseconds(1);
+  digitalWrite(POT_CS, HIGH);
+
+  SPI.endTransaction();
+}
+
+//------------------------------------------------
+// Convert desired Vpk → digipot value
+//------------------------------------------------
+void setAmplitudeVolts(float Vpk)
+{
+  // Clamp range (realistic for your setup)
+  if (Vpk < 1.0) Vpk = 1.0;
+  if (Vpk > 2.0) Vpk = 2.0;
+
+  // Since gain = 4:
+  // Vin = Vout / 4
+  float Vin = Vpk / 4.0;
+
+  // AD9833 typical max ≈ 0.6V peak (rough estimate)
+  //float Vin_max = 0.6;
+  float Vin_max = 0.75;  // tweak this
+  
+
+  // Normalize
+  float ratio = Vin / Vin_max;
+
+  if (ratio > 1.0) ratio = 1.0;
+  if (ratio < 0.0) ratio = 0.0;
+
+  uint8_t potValue = (uint8_t)(ratio * 255);
+
+  setAmplitudeRaw(potValue);
+
+  Serial.print("Amplitude set to ");
+  Serial.print(Vpk);
+  Serial.println(" Vpk");
+}
+
+//------------------------------------------------
+// Setup
+//------------------------------------------------
+void setup()
+{
+  Serial.begin(115200);
+
+  pinMode(AD9833_FSYNC, OUTPUT);
+  pinMode(POT_CS, OUTPUT);
+
+  digitalWrite(AD9833_FSYNC, HIGH);
+  digitalWrite(POT_CS, HIGH);
+
+  SPI.begin(18, -1, 23, -1);
+
+  setFrequency(1000);
+  setSine();
+  setAmplitudeVolts(1.5);
+
+  Serial.println("Function Generator Ready");
+  Serial.println("Commands:");
+  Serial.println("f <Hz>");
+  Serial.println("w sine / tri / square");
+  Serial.println("a <Vpk 1.0–2.0>");
+}
+
+//------------------------------------------------
+// Loop
+//------------------------------------------------
+void loop()
+{
+  if (Serial.available())
+  {
+    String cmd = Serial.readStringUntil('\n');
+    cmd.trim();
+
+    if (cmd.startsWith("f "))
+    {
+      float freq = cmd.substring(2).toFloat();
+      setFrequency(freq);
+
+      Serial.print("Frequency set to ");
+      Serial.println(freq);
+    }
+
+    else if (cmd.startsWith("a "))
+    {
+      float volts = cmd.substring(2).toFloat();
+      setAmplitudeVolts(volts);
+    }
+
+    else if (cmd == "w sine")
+    {
+      setSine();
+      Serial.println("Waveform: Sine");
+    }
+
+    else if (cmd == "w tri")
+    {
+      setTriangle();
+      Serial.println("Waveform: Triangle");
+    }
+
+    else if (cmd == "w square")
+    {
+      setSquare();
+      Serial.println("Waveform: Square");
+    }
+
+      else if (cmd.startsWith("p "))
+    {
+      float phase = cmd.substring(2).toFloat();
+      setPhase(phase);
+    }
+
+    else
+    {
+      Serial.println("Unknown command");
+    }
+  }
+}
