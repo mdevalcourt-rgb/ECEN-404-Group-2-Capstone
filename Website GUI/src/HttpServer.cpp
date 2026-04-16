@@ -285,7 +285,7 @@ void setupServerRoutes(Ad7356Sampler &sampler, Ads1115Sampler &ads,
   //   1. Sets a sine wave at the target frequency (confirmed 1 V: digipot 165).
   //   2. Waits dwell_ms for the DUT to settle.
   //   3. Captures 256 samples at an adaptive rate (target 4 cycles per window).
-  //   4. Runs the Goertzel single-bin DFT on CH A (input) and CH B (output).
+  //   4. Runs the Goertzel single-bin DFT on CH A (output) and CH B (input).
   //   5. Streams {"i":N,"f":F,"gain":G,"phase":P} as an SSE event.
   //
   // Chunked transfer keeps the connection open for the duration of the sweep.
@@ -332,8 +332,9 @@ void setupServerRoutes(Ad7356Sampler &sampler, Ads1115Sampler &ads,
       Ad7356Sampler::binDFT(bufA.data(), kN, freq, actualFs, &magA, &phaseA);
       Ad7356Sampler::binDFT(bufB.data(), kN, freq, actualFs, &magB, &phaseB);
 
-      const float gainDb = (magA > 1e-4f) ? 20.0f * log10f(magB / magA) : 0.0f;
-      float phaseDeg = (phaseB - phaseA) * (180.0f / static_cast<float>(M_PI));
+      // CH A/B are physically swapped at the BNC inputs — invert ratio and phase.
+      const float gainDb = (magB > 1e-4f) ? 20.0f * log10f(magA / magB) : 0.0f;
+      float phaseDeg = (phaseA - phaseB) * (180.0f / static_cast<float>(M_PI));
       while (phaseDeg >  180.0f) phaseDeg -= 360.0f;
       while (phaseDeg < -180.0f) phaseDeg += 360.0f;
 
