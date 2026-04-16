@@ -6,616 +6,165 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ESP32 ADC Monitor</title>
+  <title>MADAM3</title>
   <style>
     :root {
-      font-family: "Segoe UI", Arial, sans-serif;
-      background: #020617;
-      color: #f8fafc;
-    }
-    * {
-      box-sizing: border-box;
-    }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem;
-    }
-    .card {
-      width: min(1080px, 100%);
-      background: rgba(15, 23, 42, 0.92);
-      border-radius: 1.5rem;
-      padding: 2rem;
-      box-shadow: 0 30px 60px rgba(2, 6, 23, 0.6);
-      border: 1px solid rgba(148, 163, 184, 0.2);
-    }
-    .eyebrow {
-      font-size: 0.78rem;
-      color: #94a3b8;
-      letter-spacing: 0.35em;
-      text-transform: uppercase;
-      margin: 0;
-    }
-    h1 {
-      margin: 0.25rem 0 0.5rem;
-      font-size: clamp(1.5rem, 2vw, 2.4rem);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-    .subtitle {
-      margin-top: 0;
-      color: #cbd5f5;
-    }
-    canvas {
-      width: 100%;
-      height: clamp(200px, 40vw, 420px);
-      border-radius: 0.9rem;
-      background: #010314;
-      box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.18);
-      margin-top: 1rem;
-      display: block;
-    }
-    .controls {
-      display: grid;
-      gap: 1rem;
-      margin-top: 1.5rem;
-    }
-    .control-group {
-      background: rgba(2, 6, 23, 0.65);
-      border-radius: 1rem;
-      padding: 1rem 1.25rem;
-      border: 1px solid rgba(148, 163, 184, 0.15);
-    }
-    .control-title {
-      margin: 0 0 0.5rem;
-      font-size: 0.78rem;
-      letter-spacing: 0.35em;
-      text-transform: uppercase;
-      color: #a5b4fc;
-    }
-    .button-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-    button {
-      appearance: none;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 0.7);
-      color: #f1f5f9;
-      padding: 0.5rem 1.1rem;
-      font-size: 0.9rem;
-      cursor: pointer;
-      transition: background 0.2s ease, border-color 0.2s ease;
-    }
-    button:hover {
-      border-color: #f97316;
-    }
-    button.active {
-      background: linear-gradient(120deg, #f97316, #fb7185);
-      border-color: transparent;
-      color: #0f172a;
-      font-weight: 600;
-    }
-    .offset-input {
-      margin-top: 0.75rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      color: #cbd5f5;
-      font-size: 0.9rem;
-    }
-    .offset-input input {
-      width: 120px;
-      border-radius: 0.75rem;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      padding: 0.35rem 0.75rem;
-      background: rgba(15, 23, 42, 0.7);
-      color: #f8fafc;
-      font-size: 0.95rem;
-    }
-    .status-bar {
-      margin-top: 1.25rem;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      font-size: 0.92rem;
-      color: #94a3b8;
-      justify-content: space-between;
-    }
-    .status-bar strong {
-      color: #f8fafc;
-    }
-    .legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.85rem;
-      margin-top: 1rem;
-      font-size: 0.95rem;
-    }
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.35rem 0.9rem;
-      border-radius: 999px;
-      background: rgba(148, 163, 184, 0.15);
-    }
-    .legend-color {
-      width: 0.9rem;
-      height: 0.9rem;
-      border-radius: 50%;
-    }
-    .measurements {
-      margin-top: 1.5rem;
-      background: rgba(2, 6, 23, 0.65);
-      border-radius: 1.25rem;
-      border: 1px solid rgba(148, 163, 184, 0.18);
-      padding: 1.25rem;
-    }
-    .measurements-header {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      gap: 0.5rem;
-    }
-    .measurements h2 {
-      margin: 0;
-      font-size: 1rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: #a5b4fc;
-    }
-    #cursor-status {
-      margin: 0;
-      color: #cbd5f5;
-      font-size: 0.9rem;
-    }
-    .cursor-values {
-      margin-top: 1rem;
-      display: grid;
-      gap: 0.75rem;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    }
-    .cursor-card {
-      background: rgba(148, 163, 184, 0.08);
-      border-radius: 0.9rem;
-      padding: 0.75rem;
-      border: 1px solid rgba(148, 163, 184, 0.15);
-    }
-    .cursor-card h3 {
-      margin: 0 0 0.35rem;
-      font-size: 0.9rem;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: #e0e7ff;
-    }
-    .cursor-card p {
-      margin: 0.15rem 0;
-      font-family: "Roboto Mono", monospace;
-      font-size: 0.85rem;
-      color: #f8fafc;
-    }
-    .delta-summary {
-      margin-top: 1rem;
-      font-size: 1rem;
-      color: #fcd34d;
-    }
-    .sig-measurements {
-      margin-top: 1.5rem;
-      background: rgba(2, 6, 23, 0.65);
-      border-radius: 1.25rem;
-      border: 1px solid rgba(148, 163, 184, 0.18);
-      padding: 1.25rem;
-    }
-    .sig-measurements h2 {
-      margin: 0 0 1rem;
-      font-size: 1rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: #a5b4fc;
-    }
-    .sig-meas-channels {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 0.75rem;
-    }
-    .sig-meas-card {
-      background: rgba(148, 163, 184, 0.08);
-      border-radius: 0.9rem;
-      padding: 0.75rem 1rem;
-      border: 1px solid rgba(148, 163, 184, 0.15);
-    }
-    .sig-meas-card h3 {
-      margin: 0 0 0.5rem;
-      font-size: 0.9rem;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-    }
-    .sig-meas-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      font-size: 0.88rem;
-      padding: 0.18rem 0;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.08);
-    }
-    .sig-meas-row:last-child { border-bottom: none; }
-    .sig-meas-label { color: #94a3b8; }
-    .sig-meas-value { font-family: "Roboto Mono", monospace; color: #f8fafc; }
-    .section-title {
-      margin: 0.1rem 0;
-      font-size: clamp(1.1rem, 2vw, 1.35rem);
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-    }
-    .panel-header {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .panel-chip {
-      padding: 0.35rem 0.8rem;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.35);
-      font-size: 0.8rem;
-      color: #cbd5f5;
-      background: rgba(148, 163, 184, 0.08);
-    }
-    .panel-copy {
-      margin: 0.3rem 0 0;
-      color: #cbd5f5;
-      font-size: 0.95rem;
-    }
-    .lab-grid {
-      margin-top: 2rem;
-      display: grid;
-      gap: 1.25rem;
-    }
-    .meter-grid {
-      display: grid;
-      gap: 1rem;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    }
-    .meter-card {
-      background: rgba(2, 6, 23, 0.7);
-      border-radius: 1rem;
-      padding: 1rem 1.25rem;
-      border: 1px solid rgba(148, 163, 184, 0.16);
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
-    }
-    .meter-label {
-      margin: 0;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      font-size: 0.85rem;
-      color: #a5b4fc;
-    }
-    .meter-value {
-      margin: 0.35rem 0;
-      font-size: clamp(1.6rem, 3vw, 2.1rem);
-      font-family: "Roboto Mono", monospace;
-    }
-    .meter-meta {
-      margin: 0.15rem 0 0;
-      color: #94a3b8;
-      font-size: 0.92rem;
-    }
-    .meter-bar {
-      position: relative;
-      height: 14px;
-      background: rgba(148, 163, 184, 0.2);
-      border-radius: 999px;
-      overflow: hidden;
-      margin-top: 0.5rem;
-    }
-    .meter-bar span {
-      position: absolute;
-      left: 0;
-      top: 0;
-      height: 100%;
-      width: 0;
-      background: linear-gradient(120deg, #22d3ee, #6366f1);
-      transition: width 0.2s ease;
-    }
-    .control-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 1rem;
-    }
-    @media (max-width: 900px) {
-      .control-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-    .control-panel {
-      background: rgba(2, 6, 23, 0.72);
-      border-radius: 1rem;
-      padding: 1rem 1.25rem 1.35rem;
-      border: 1px solid rgba(148, 163, 184, 0.15);
-    }
-    .panel-title-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.5rem;
-    }
-    .control-panel h3 {
-      margin: 0;
-      font-size: 1rem;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-    }
-    .supply-grid {
-      margin-top: 1rem;
-      display: grid;
-      gap: 0.75rem;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    }
-    .supply-card {
-      background: rgba(15, 23, 42, 0.55);
-      border-radius: 0.9rem;
-      padding: 0.85rem;
-      border: 1px solid rgba(148, 163, 184, 0.14);
-    }
-    .supply-heading {
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      font-size: 0.88rem;
-      margin: 0 0 0.5rem;
-    }
-    .supply-slider {
-      width: 100%;
-    }
-    .supply-input-row {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-top: 0.65rem;
-    }
-    .supply-input-row input {
-      flex: 1;
-      border-radius: 0.75rem;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      padding: 0.4rem 0.65rem;
-      background: rgba(15, 23, 42, 0.7);
-      color: #f8fafc;
-      font-size: 0.95rem;
-    }
-    .supply-unit {
-      color: #cbd5f5;
-      font-weight: 600;
-    }
-    .supply-status {
-      margin: 0.35rem 0 0;
-      font-size: 0.9rem;
-      color: #94a3b8;
-    }
-    .wave-buttons button {
-      flex: 1 1 120px;
-    }
-    .waveform-status {
-      margin: 0.65rem 0 0;
-      color: #cbd5f5;
-      font-size: 0.93rem;
-    }
-    .button-row.wave-buttons {
-      width: 100%;
-    }
-    .waveform-grid {
-      display: grid;
-      gap: 0.75rem;
-      margin-top: 0.85rem;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    }
-    .waveform-field {
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-    }
-    .waveform-field label {
-      font-size: 0.86rem;
-      color: #cbd5f5;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-    .waveform-field input {
-      border-radius: 0.75rem;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      padding: 0.45rem 0.65rem;
-      background: rgba(15, 23, 42, 0.75);
-      color: #f8fafc;
-      font-size: 0.95rem;
-    }
-    @media (max-width: 480px) {
-      body { padding: 0.75rem; }
-      .card { padding: 1.25rem 1rem; border-radius: 1rem; }
-      .status-bar { font-size: 0.82rem; gap: 0.5rem; }
-    }
-    /* ── Help drawer ─────────────────────────────────────────── */
-    /* ── Dev mode bar + panel ─────────────────────────────────────────────── */
-    .dev-bar {
-      display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 1100;
-      height: 1.75rem; background: #facc15; color: #000;
-      font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-      align-items: center; justify-content: center; gap: 0.5rem;
-      cursor: pointer; user-select: none;
-    }
-    .dev-bar.visible { display: flex; }
-    .dev-bar-chevron { font-size: 0.65rem; transition: transform 0.2s; }
-    .dev-bar.panel-open .dev-bar-chevron { transform: rotate(180deg); }
-    .dev-panel {
-      position: fixed; top: 1.75rem; left: 0; bottom: 0; z-index: 1099;
-      width: 300px; background: #0f172a; border-right: 1px solid rgba(255,255,255,0.08);
-      display: flex; flex-direction: column; transform: translateX(-100%);
-      transition: transform 0.25s ease; overflow: hidden;
-    }
-    .dev-panel.open { transform: translateX(0); }
-    .dev-panel-header {
-      padding: 0.75rem 1rem 0.5rem;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em;
-      color: #facc15; text-transform: uppercase;
-    }
-    .dev-panel-body { flex: 1; overflow-y: auto; padding: 0.75rem 1rem 1rem; }
-    .dev-section-title {
-      font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em;
-      color: #475569; text-transform: uppercase;
-      margin: 0.9rem 0 0.4rem; padding-bottom: 0.25rem;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-    }
-    .dev-row {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem 0.6rem;
-      margin-bottom: 0.35rem;
-    }
-    .dev-row.full { grid-template-columns: 1fr; }
-    .dev-field { display: flex; flex-direction: column; gap: 0.15rem; }
-    .dev-field label {
-      font-size: 0.6rem; color: #64748b; letter-spacing: 0.04em; white-space: nowrap;
-    }
-    .dev-field input, .dev-field select {
-      background: #1e293b; border: 1px solid #334155; border-radius: 4px;
-      color: #e2e8f0; font-size: 0.72rem; padding: 0.25rem 0.4rem;
-      width: 100%; box-sizing: border-box;
-    }
-    .dev-field input:focus, .dev-field select:focus {
-      outline: none; border-color: #facc15;
-    }
-    body.is-dev .conn-pill { top: calc(1rem + 1.75rem); }
-
-    /* ── Connection status pill ───────────────────────────────────────────── */
-    .conn-pill {
-      position: fixed; top: 1rem; left: 1rem; z-index: 900;
-      display: flex; align-items: center; gap: 0.4rem;
-      padding: 0.3rem 0.75rem 0.3rem 0.55rem; border-radius: 999px;
-      background: rgba(15,23,42,0.82); backdrop-filter: blur(6px);
-      border: 1px solid rgba(255,255,255,0.08);
-      font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em;
-      color: #94a3b8; user-select: none; pointer-events: none;
-      transition: color 0.4s ease;
-    }
-    .conn-dot {
-      width: 0.5rem; height: 0.5rem; border-radius: 50%; flex-shrink: 0;
-      background: #64748b;
-      transition: background 0.4s ease, box-shadow 0.4s ease;
-    }
-    /* live — green pulse */
-    .conn-pill.conn-live { color: #86efac; }
-    .conn-pill.conn-live .conn-dot {
-      background: #22c55e;
-      box-shadow: 0 0 0 0 rgba(34,197,94,0.5);
-      animation: conn-pulse 2s ease-out infinite;
-    }
-    /* slow — amber, no pulse */
-    .conn-pill.conn-slow { color: #fcd34d; }
-    .conn-pill.conn-slow .conn-dot { background: #f59e0b; box-shadow: none; }
-    /* dead — red, no pulse */
-    .conn-pill.conn-dead { color: #fca5a5; }
-    .conn-pill.conn-dead .conn-dot { background: #ef4444; box-shadow: none; }
-    @keyframes conn-pulse {
-      0%   { box-shadow: 0 0 0 0   rgba(34,197,94,0.55); }
-      70%  { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
-      100% { box-shadow: 0 0 0 0   rgba(34,197,94,0); }
-    }
-    .help-btn {
-      position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 1000;
-      width: 3rem; height: 3rem; border-radius: 50%; padding: 0;
-      background: linear-gradient(120deg, #f97316, #fb7185);
-      border: none; color: #0f172a; font-size: 1.3rem; font-weight: 700;
-      cursor: pointer; box-shadow: 0 4px 24px rgba(249,115,22,0.35);
-      display: flex; align-items: center; justify-content: center;
-    }
-    .help-btn:hover { filter: brightness(1.12); border-color: transparent; }
-    .help-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(2,6,23,0.55); z-index: 1001;
-    }
-    .help-overlay.open { display: block; }
-    .help-drawer {
-      position: fixed; top: 0; right: 0; bottom: 0;
-      width: min(420px, 100vw);
-      background: #0f172a; border-left: 1px solid rgba(148,163,184,0.2);
-      z-index: 1002; display: flex; flex-direction: column;
-      transform: translateX(100%); transition: transform 0.25s ease;
-    }
-    .help-drawer.open { transform: translateX(0); }
-    .help-drawer-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(148,163,184,0.15);
-      flex-shrink: 0;
-    }
-    .help-drawer-header h2 {
-      margin: 0; font-size: 1rem; letter-spacing: 0.25em;
-      text-transform: uppercase; color: #a5b4fc;
-    }
-    .help-close-btn {
-      background: none; border: none; color: #94a3b8;
-      font-size: 1.5rem; line-height: 1; cursor: pointer;
-      padding: 0.2rem 0.5rem; border-radius: 0.4rem;
-    }
-    .help-close-btn:hover { color: #f8fafc; background: rgba(148,163,184,0.1); border-color: transparent; }
-    .help-tabs {
-      display: flex; overflow-x: auto; border-bottom: 1px solid rgba(148,163,184,0.15);
-      flex-shrink: 0; scrollbar-width: none;
-    }
-    .help-tabs::-webkit-scrollbar { display: none; }
-    .help-tab {
-      flex-shrink: 0; border: none; border-radius: 0; background: none;
-      color: #94a3b8; font-size: 0.75rem; letter-spacing: 0.08em;
-      text-transform: uppercase; padding: 0.75rem 0.9rem;
-      border-bottom: 2px solid transparent; cursor: pointer;
-    }
-    .help-tab:hover { color: #f8fafc; background: rgba(148,163,184,0.07); border-color: transparent; }
-    .help-tab.active { color: #f97316; border-bottom-color: #f97316; }
-    .help-content {
-      overflow-y: auto; padding: 1.5rem; flex: 1;
-      font-size: 0.93rem; line-height: 1.75; color: #cbd5f5;
-    }
-    .help-content h2 { color: #f8fafc; font-size: 1.05rem; margin: 0 0 0.75rem; }
-    .help-content h3 {
-      color: #a5b4fc; font-size: 0.75rem; letter-spacing: 0.2em;
-      text-transform: uppercase; margin: 1.4rem 0 0.4rem;
-    }
-    .help-content p { margin: 0.4rem 0; }
-    .help-content ul, .help-content ol { margin: 0.4rem 0; padding-left: 1.3rem; }
-    .help-content li { margin: 0.2rem 0; }
-    .help-content strong { color: #f8fafc; }
-    .help-content table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.6rem 0; }
-    .help-content th {
-      color: #a5b4fc; text-align: left; padding: 0.35rem 0.6rem;
-      border-bottom: 1px solid rgba(148,163,184,0.25);
-      font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase;
-    }
-    .help-content td { padding: 0.35rem 0.6rem; border-bottom: 1px solid rgba(148,163,184,0.1); vertical-align: top; }
-    .help-content blockquote {
-      margin: 0.7rem 0; padding: 0.55rem 1rem;
-      border-left: 3px solid #f97316; background: rgba(249,115,22,0.07);
-      border-radius: 0 0.4rem 0.4rem 0; color: #f1f5f9; font-size: 0.88rem;
-    }
-    .help-content pre {
-      background: rgba(2,6,23,0.8); border: 1px solid rgba(148,163,184,0.15);
-      border-radius: 0.5rem; padding: 0.7rem 1rem; overflow-x: auto;
-      font-size: 0.82rem; color: #94a3b8; margin: 0.6rem 0;
-    }
-    .help-content code { font-family: Consolas, monospace; }
+      --bg:#0a0a0a; --bg2:#111111; --bgi:#060606;
+      --a:#e8e8e8; --ad:#888888; --ah:#ffffff;
+      --af:rgba(255,255,255,0.07); --ab:rgba(255,255,255,0.20);
+      --font:"Courier New",Courier,"Lucida Console",Monaco,monospace;
+    }
+    *,*::before,*::after{box-sizing:border-box;}
+    html{background:var(--bg);color:var(--a);font-family:var(--font);font-size:15px;line-height:1.5;}
+    body{margin:0;padding:1.5rem;min-height:100vh;}
+    h1,h2,h3,h4{font-family:var(--font);font-weight:normal;text-transform:uppercase;letter-spacing:.1em;}
+    p{margin:0;}
+    .tw{max-width:1080px;margin:0 auto;}
+    /* ── Sections ── */
+    .ts{border:1px solid var(--ab);margin-top:1.25rem;background:var(--bg2);}
+    .ts-head{display:flex;align-items:center;justify-content:space-between;padding:.2rem .75rem;background:var(--ad);border-bottom:1px solid var(--ab);font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--bg);font-weight:bold;}
+    .ts-body{padding:.75rem 1rem;}
+    .ts-body.p0{padding:.5rem;}
+    /* ── Buttons ── */
+    button{appearance:none;font-family:var(--font);font-size:.8rem;background:transparent;color:var(--a);border:1px solid var(--ad);padding:.28rem .7rem;cursor:pointer;text-transform:uppercase;letter-spacing:.05em;transition:background .1s,color .1s,border-color .1s;border-radius:0;}
+    button:hover{background:rgba(0,224,96,0.12);border-color:#00e060;color:#00e060;}
+    button.active{background:#00e060;color:#0a0a0a;border-color:#00e060;}
+    button:disabled{opacity:.35;cursor:not-allowed;}
+    /* ── Inputs ── */
+    input[type="number"],input[type="text"],select{font-family:var(--font);font-size:.8rem;background:var(--bgi);color:var(--a);border:1px solid var(--ad);padding:.22rem .4rem;border-radius:0;outline:none;}
+    input:focus,select:focus{border-color:var(--a);}
+    /* ── Layouts ── */
+    .btn-row{display:flex;flex-wrap:wrap;gap:.3rem;}
+    .input-row{display:flex;align-items:center;gap:.45rem;font-size:.8rem;color:#ffd700;margin-top:.4rem;}
+    .ctrl-grp{margin-top:.65rem;padding:.45rem .65rem;border:1px solid var(--ab);}
+    .ctrl-lbl{font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;color:#00e060;margin-bottom:.3rem;}
+    .two-col{display:grid;grid-template-columns:2fr 1fr;gap:.65rem;}
+    @media(max-width:860px){.two-col{grid-template-columns:1fr;}}
+    /* ── Canvas + scanlines ── */
+    .canvas-wrap{position:relative;}
+    .canvas-wrap::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(to bottom,transparent 0px,transparent 3px,rgba(0,0,0,.10) 3px,rgba(0,0,0,.10) 4px);}
+    canvas{display:block;width:100%;height:clamp(200px,38vw,400px);background:#080808;}
+    strong,b{color:#00e060;}
+    /* ── Status bar ── */
+    .status-bar{display:flex;flex-wrap:wrap;gap:.25rem 1.1rem;font-size:.72rem;color:var(--ad);border-top:1px solid var(--ab);padding-top:.35rem;margin-top:.35rem;}
+    .status-bar strong{color:#00e060;}
+    /* ── Legend ── */
+    .legend{display:flex;flex-wrap:wrap;gap:.35rem;margin:.4rem 0;font-size:.78rem;}
+    .legend-item{display:flex;align-items:center;gap:.3rem;border:1px solid var(--ab);padding:.1rem .4rem;}
+    .legend-color{width:.55rem;height:.55rem;flex-shrink:0;}
+    /* ── Cursor measurements ── */
+    .meas-grid{display:grid;gap:.45rem;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-top:.2rem;}
+    .meas-card{border:1px solid var(--ab);padding:.45rem .6rem;background:var(--bg);}
+    .meas-card h3{font-size:.65rem;letter-spacing:.14em;margin-bottom:.22rem;padding-bottom:.14rem;border-bottom:1px solid var(--ab);}
+    .meas-card p{font-size:.78rem;margin:.08rem 0;}
+    .delta-summary{font-size:.85rem;color:var(--ah);margin-top:.45rem;}
+    #cursor-status{font-size:.75rem;color:var(--ad);margin-top:.3rem;}
+    /* ── Signal measurements ── */
+    .sig-meas-channels{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.45rem;}
+    .sig-meas-card{border:1px solid var(--ab);padding:.45rem .6rem;background:var(--bg);}
+    .sig-meas-card h3{font-size:.65rem;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.25rem;padding-bottom:.12rem;border-bottom:1px solid var(--ab);}
+    .sig-meas-row{display:flex;justify-content:space-between;font-size:.78rem;padding:.07rem 0;}
+    .sig-meas-label{color:var(--ad);}
+    .sig-meas-value{color:var(--a);}
+    /* ── Meter cards ── */
+    .meter-grid{display:grid;gap:.45rem;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));}
+    .meter-card{border:1px solid var(--ab);padding:.6rem .7rem;background:var(--bg);}
+    .meter-label{font-size:.65rem;letter-spacing:.14em;text-transform:uppercase;color:#00e060;font-weight:bold;}
+    .meter-value{font-size:1.85rem;color:var(--ah);line-height:1.2;margin:.12rem 0;}
+    .meter-meta{font-size:.72rem;color:var(--ad);}
+    /* ── Instrument panels ── */
+    .instr-panel{border:1px solid var(--ab);padding:.65rem .75rem;background:var(--bg);}
+    .instr-ph{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ad);margin-bottom:.4rem;padding-bottom:.25rem;border-bottom:1px solid var(--ab);display:flex;justify-content:space-between;}
+    .instr-ph>span:first-child{color:#00e060;font-weight:bold;}
+    .chip{border:1px solid var(--ad);padding:.08rem .35rem;font-size:.62rem;letter-spacing:.07em;color:var(--ad);}
+    .instr-desc{font-size:.75rem;color:var(--ad);margin-bottom:.45rem;}
+    /* ── Supply ── */
+    .supply-card{border:1px solid var(--ab);padding:.45rem .6rem;background:var(--bg2);margin-top:.45rem;}
+    .supply-heading{font-size:.65rem;text-transform:uppercase;letter-spacing:.14em;color:#ffd700;margin-bottom:.3rem;}
+    .supply-input-row{display:flex;align-items:center;gap:.35rem;}
+    .supply-input-row input{width:82px;}
+    .supply-unit{color:#ffd700;font-size:.8rem;}
+    .supply-status{font-size:.72rem;color:var(--ad);margin-top:.22rem;}
+    /* ── Waveform ── */
+    .wave-grid{display:grid;gap:.4rem;margin-top:.45rem;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));}
+    .wave-field{display:flex;flex-direction:column;gap:.15rem;}
+    .wave-field label{font-size:.65rem;color:#ffd700;text-transform:uppercase;letter-spacing:.07em;}
+    .wave-field input{width:100%;}
+    .gain-row{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.45rem;align-items:center;}
+    .gain-row>label{font-size:.65rem;color:#ffd700;text-transform:uppercase;letter-spacing:.07em;width:100%;}
+    .gain-btn{font-family:var(--font);font-size:.75rem;background:transparent;color:var(--a);border:1px solid var(--ad);padding:.22rem .5rem;cursor:pointer;border-radius:0;text-transform:uppercase;}
+    .gain-btn:hover{background:rgba(0,224,96,0.12);border-color:#00e060;color:#00e060;}
+    .gain-btn.active{background:#00e060;color:#0a0a0a;border-color:#00e060;}
+    .gain-pot-display{font-size:.7rem;color:var(--ad);margin-top:.18rem;}
+    .waveform-status,.bode-status{font-size:.72rem;color:var(--ad);margin-top:.28rem;min-height:1em;}
+    /* ── Connection pill ── */
+    .conn-pill{position:fixed;top:.65rem;left:.65rem;z-index:900;display:flex;align-items:center;gap:.32rem;padding:.18rem .52rem;border:1px solid var(--ab);background:var(--bg);font-size:.66rem;font-family:var(--font);color:var(--ad);text-transform:uppercase;letter-spacing:.04em;pointer-events:none;user-select:none;}
+    .conn-dot{width:.42rem;height:.42rem;flex-shrink:0;background:var(--ad);}
+    .conn-pill.conn-live{color:#00ff44;border-color:rgba(0,255,68,.3);}
+    .conn-pill.conn-live .conn-dot{background:#00ff44;animation:cpulse 2s ease-out infinite;}
+    .conn-pill.conn-slow{color:var(--ah);border-color:var(--ab);}
+    .conn-pill.conn-slow .conn-dot{background:var(--ah);}
+    .conn-pill.conn-dead{color:#ff4444;border-color:rgba(255,68,68,.3);}
+    .conn-pill.conn-dead .conn-dot{background:#ff4444;}
+    @keyframes cpulse{0%{box-shadow:0 0 0 0 rgba(0,255,68,.6)}70%{box-shadow:0 0 0 5px rgba(0,255,68,0)}100%{box-shadow:0 0 0 0 rgba(0,255,68,0)}}
+    body.is-dev .conn-pill{top:calc(.65rem + 1.75rem);}
+    /* ── Help button ── */
+    .help-btn{position:fixed;bottom:1.2rem;right:1.2rem;z-index:1000;width:2.3rem;height:2.3rem;padding:0;background:#ffd700;border:1px solid #ffd700;color:#0a0a0a;font-family:var(--font);font-size:1rem;font-weight:bold;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:0;}
+    .help-btn:hover{background:#ffe84d;border-color:#ffe84d;color:#0a0a0a;}
+    /* ── Help drawer ── */
+    .help-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1001;}
+    .help-overlay.open{display:block;}
+    .help-drawer{position:fixed;top:0;right:0;bottom:0;width:min(420px,100vw);background:var(--bg);border-left:1px solid var(--ab);z-index:1002;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .2s ease;}
+    .help-drawer.open{transform:translateX(0);}
+    .help-drawer-header{display:flex;align-items:center;justify-content:space-between;padding:.6rem .85rem;border-bottom:1px solid var(--ab);flex-shrink:0;}
+    .help-drawer-header h2{color:var(--ah);font-size:.8rem;letter-spacing:.2em;}
+    .help-close-btn{background:none;border:1px solid var(--ad);color:var(--a);font-family:var(--font);font-size:.9rem;cursor:pointer;padding:.1rem .38rem;border-radius:0;}
+    .help-close-btn:hover{background:var(--a);color:var(--bg);border-color:var(--a);}
+    .help-tabs{display:flex;overflow-x:auto;border-bottom:1px solid var(--ab);flex-shrink:0;scrollbar-width:none;}
+    .help-tabs::-webkit-scrollbar{display:none;}
+    .help-tab{flex-shrink:0;border:none;border-right:1px solid var(--ab);background:none;color:var(--ad);font-family:var(--font);font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;padding:.42rem .6rem;border-bottom:2px solid transparent;cursor:pointer;border-radius:0;}
+    .help-tab:hover{color:var(--a);background:var(--af);border-color:transparent;border-bottom-color:transparent;}
+    .help-tab.active{color:var(--ah);border-bottom-color:var(--ah);}
+    .help-content{overflow-y:auto;padding:.85rem 1rem;flex:1;font-size:.8rem;line-height:1.65;color:var(--a);}
+    .help-content h2{color:var(--ah);font-size:.88rem;margin:0 0 .38rem;border-bottom:1px solid var(--ab);padding-bottom:.18rem;}
+    .help-content h3{color:var(--ad);font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;margin:.9rem 0 .22rem;}
+    .help-content p{margin:.22rem 0;}
+    .help-content ul,.help-content ol{margin:.22rem 0;padding-left:1.1rem;}
+    .help-content li{margin:.1rem 0;}
+    .help-content strong{color:#00e060;}
+    .help-content table{width:100%;border-collapse:collapse;font-size:.76rem;margin:.4rem 0;}
+    .help-content th{color:var(--ad);text-align:left;padding:.2rem .4rem;border-bottom:1px solid var(--ab);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;}
+    .help-content td{padding:.2rem .4rem;border-bottom:1px solid rgba(255,255,255,.07);vertical-align:top;}
+    .help-content blockquote{margin:.45rem 0;padding:.32rem .65rem;border-left:2px solid var(--a);background:var(--af);color:var(--ah);font-size:.78rem;}
+    .help-content pre{background:var(--bgi);border:1px solid var(--ab);padding:.38rem .62rem;overflow-x:auto;font-size:.75rem;color:var(--ad);margin:.4rem 0;}
+    .help-content code{font-family:var(--font);}
+    /* ── Dev bar + panel ── */
+    .dev-bar{display:none;position:fixed;top:0;left:0;right:0;z-index:1100;height:1.75rem;background:#1a1a1a;color:var(--ah);font-family:var(--font);font-size:.66rem;font-weight:bold;letter-spacing:.1em;text-transform:uppercase;align-items:center;justify-content:center;gap:.5rem;cursor:pointer;user-select:none;border-bottom:1px solid var(--a);}
+    .dev-bar.visible{display:flex;}
+    .dev-bar-chevron{font-size:.6rem;transition:transform .2s;}
+    .dev-bar.panel-open .dev-bar-chevron{transform:rotate(180deg);}
+    .dev-panel{position:fixed;top:1.75rem;left:0;bottom:0;z-index:1099;width:270px;background:var(--bg);border-right:1px solid var(--ab);display:flex;flex-direction:column;transform:translateX(-100%);transition:transform .2s ease;overflow:hidden;}
+    .dev-panel.open{transform:translateX(0);}
+    .dev-panel-header{padding:.42rem .7rem;border-bottom:1px solid var(--ab);font-size:.62rem;font-weight:bold;letter-spacing:.12em;color:var(--ah);text-transform:uppercase;}
+    .dev-panel-body{flex:1;overflow-y:auto;padding:.45rem .7rem 1rem;}
+    .dev-section-title{font-size:.57rem;font-weight:bold;letter-spacing:.12em;color:var(--ad);text-transform:uppercase;margin:.65rem 0 .25rem;padding-bottom:.15rem;border-bottom:1px solid var(--ab);}
+    .dev-row{display:grid;grid-template-columns:1fr 1fr;gap:.22rem .45rem;margin-bottom:.22rem;}
+    .dev-row.full{grid-template-columns:1fr;}
+    .dev-field{display:flex;flex-direction:column;gap:.08rem;}
+    .dev-field label{font-size:.57rem;color:var(--ad);letter-spacing:.04em;white-space:nowrap;}
+    .dev-field input,.dev-field select{background:var(--bgi);border:1px solid var(--ad);color:var(--a);font-family:var(--font);font-size:.66rem;padding:.17rem .28rem;width:100%;}
+    .dev-field input:focus,.dev-field select:focus{outline:none;border-color:var(--a);}
+    .dev-bar,.dev-panel{--a:#ffd700;--ad:#a07800;--ah:#ffe84d;--af:rgba(255,215,0,0.10);--ab:rgba(255,215,0,0.28);}
+    @media(max-width:480px){body{padding:.5rem;}}
   </style>
 </head>
 <body>
-  <!-- Dev mode bar (visible only on localhost) -->
   <div class="dev-bar" id="dev-bar">
-    &#9964; Self-Host Dev Mode
+    &#9964; SELF-HOST DEV MODE
     <span class="dev-bar-chevron" id="dev-bar-chevron">&#9660;</span>
   </div>
-
-  <!-- Dev panel (left-side drawer, localhost only) -->
   <aside class="dev-panel" id="dev-panel">
-    <div class="dev-panel-header">Fake Data Controls</div>
+    <div class="dev-panel-header">&gt; FAKE DATA CONTROLS</div>
     <div class="dev-panel-body">
 
       <div class="dev-section-title">Oscilloscope &mdash; CH A</div>
@@ -704,100 +253,159 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
         </div>
       </div>
 
+      <div class="dev-section-title">Bode Plot</div>
+      <div class="dev-row">
+        <div class="dev-field">
+          <label>Filter Type</label>
+          <select id="dev-bode-type">
+            <option value="lp1">LP 1st order</option>
+            <option value="lp2">LP 2nd order</option>
+            <option value="hp1">HP 1st order</option>
+            <option value="bp2">Band-pass 2nd</option>
+          </select>
+        </div>
+        <div class="dev-field">
+          <label>Cutoff (Hz)</label>
+          <input id="dev-bode-fc" type="number" min="10" max="5000" step="10" value="500" />
+        </div>
+      </div>
+      <div class="dev-row">
+        <div class="dev-field">
+          <label>DC Gain (dB)</label>
+          <input id="dev-bode-gain" type="number" min="-40" max="20" step="1" value="0" />
+        </div>
+        <div class="dev-field">
+          <label>Q Factor</label>
+          <input id="dev-bode-q" type="number" min="0.1" max="10" step="0.1" value="0.707" />
+        </div>
+      </div>
+      <div class="dev-row full">
+        <div class="dev-field">
+          <label>Noise (dB rms)</label>
+          <input id="dev-bode-noise" type="number" min="0" max="5" step="0.1" value="0.3" />
+        </div>
+      </div>
+      <div class="dev-row full">
+        <div class="dev-field">
+          <button id="dev-bode-inject" style="width:100%;margin-top:.15rem">&#9654; Inject Bode Data</button>
+        </div>
+      </div>
+
     </div>
   </aside>
 
-  <div class="card">
-    <p class="eyebrow">WEB OSCILLOSCOPE</p>
-    <h1>ADC STREAM</h1>
-    <p class="subtitle">AD7356 CH A / CH B — calibrated ±2 V range (piecewise linear, cal_20260327).</p>
+  <div class="tw">
+    <div style="padding-top:2.1rem">
+      <p style="font-size:.66rem;letter-spacing:.28em;color:var(--ad);text-transform:uppercase">&gt; MADAM3 &mdash; WEB INSTRUMENT v1.1</p>
+      <h1 style="font-size:1.35rem;border-bottom:1px solid var(--ab);padding-bottom:.35rem;margin:.08rem 0">ADC STREAM</h1>
+      <p style="font-size:.75rem;color:var(--ad);margin-top:.18rem">AD7356 CH A / CH B &mdash; calibrated &plusmn;2&thinsp;V (piecewise linear, cal_20260327)</p>
+    </div>
 
-    <canvas id="graph" width="960" height="420"></canvas>
-
-    <div class="controls">
-      <div class="control-group">
-        <p class="control-title">Window — X axis</p>
-        <div class="button-row">
-          <button class="window-btn active" id="mode-fast">Fast (60 kHz)</button>
-          <button class="window-btn" id="mode-slow">Slow (~170 Hz)</button>
-        </div>
-        <div class="button-row" id="fast-window-btns">
-          <button class="window-btn" data-window-ms="1">1 ms</button>
-          <button class="window-btn" data-window-ms="2">2 ms</button>
-          <button class="window-btn active" data-window-ms="4">4 ms</button>
-          <button class="window-btn" data-window-ms="8">8 ms</button>
-        </div>
-        <div class="button-row" id="slow-window-btns" style="display:none">
-          <button class="window-btn" data-window-ms="500">500 ms</button>
-          <button class="window-btn" data-window-ms="1000">1 s</button>
-          <button class="window-btn" data-window-ms="2000">2 s</button>
-          <button class="window-btn" data-window-ms="3000">3 s</button>
-        </div>
-        <label class="offset-input">
-          <span>Custom (ms)</span>
-          <input type="number" id="window-custom" min="0.1" max="8.5" step="0.1" value="4.00" />
-          <button id="window-custom-set">Set</button>
-        </label>
-      </div>
-
-      <div class="control-group">
-        <p class="control-title">V Range — Y axis</p>
-        <div class="button-row">
-          <button class="range-btn" data-range="0.5">0.5 V</button>
-          <button class="range-btn" data-range="1">1 V</button>
-          <button class="range-btn" data-range="2">2 V</button>
-          <button class="range-btn active" data-range="4">4 V</button>
-        </div>
-        <label class="offset-input">
-          <span>Custom (V)</span>
-          <input type="number" id="range-input" step="0.1" min="0.1" value="4" />
-        </label>
-      </div>
-
-      <div class="control-group">
-        <p class="control-title">Center — Y position</p>
-        <div class="button-row">
-          <button class="center-btn" data-center="-1">-1 V</button>
-          <button class="center-btn" data-center="-0.5">-0.5 V</button>
-          <button class="center-btn active" data-center="0">0 V</button>
-          <button class="center-btn" data-center="0.5">+0.5 V</button>
-          <button class="center-btn" data-center="1">+1 V</button>
-        </div>
-        <label class="offset-input">
-          <span>Manual (V)</span>
-          <input type="number" id="center-input" step="0.1" value="0" />
-        </label>
-      </div>
-
-      <div class="control-group">
-        <p class="control-title">Acquisition</p>
-        <div class="button-row">
-          <button id="toggle-stream">Pause</button>
-          <button class="cursor-btn" data-cursor="A">Set Cursor A</button>
-          <button class="cursor-btn" data-cursor="B">Set Cursor B</button>
-          <button id="clear-cursors">Clear Cursors</button>
+    <div class="ts">
+      <div class="ts-head"><span>&gt; OSCILLOSCOPE</span><span>AD7356 DUAL 12-BIT</span></div>
+      <div class="ts-body p0">
+        <div class="canvas-wrap">
+          <canvas id="graph" width="960" height="400"></canvas>
+          <canvas id="bode-canvas" width="960" height="400" style="display:none"></canvas>
         </div>
       </div>
+    </div>
 
-      <div class="control-group">
-        <p class="control-title">Trigger</p>
-        <div class="button-row">
-          <button id="trigger-toggle">Trigger: Off</button>
-          <button class="trig-edge-btn active" data-edge="rising">Rising &#x2191;</button>
-          <button class="trig-edge-btn" data-edge="falling">Falling &#x2193;</button>
-          <button class="trig-ch-btn active" data-ch="0">CH A</button>
-          <button class="trig-ch-btn" data-ch="1">CH B</button>
+    <div class="ts">
+      <div class="ts-head"><span>&gt; SCOPE CONTROLS</span></div>
+      <div class="ts-body">
+        <div class="ctrl-grp">
+          <p class="ctrl-lbl">Window &mdash; X axis</p>
+          <div class="btn-row">
+            <button class="window-btn active" id="mode-fast">Fast (60 kHz)</button>
+            <button class="window-btn" id="mode-slow">Slow (~170 Hz)</button>
+          </div>
+          <div class="btn-row" id="fast-window-btns" style="margin-top:.28rem">
+            <button class="window-btn" data-window-ms="1">1 ms</button>
+            <button class="window-btn" data-window-ms="2">2 ms</button>
+            <button class="window-btn active" data-window-ms="4">4 ms</button>
+            <button class="window-btn" data-window-ms="8">8 ms</button>
+          </div>
+          <div class="btn-row" id="slow-window-btns" style="display:none;margin-top:.28rem">
+            <button class="window-btn" data-window-ms="500">500 ms</button>
+            <button class="window-btn" data-window-ms="1000">1 s</button>
+            <button class="window-btn" data-window-ms="2000">2 s</button>
+            <button class="window-btn" data-window-ms="3000">3 s</button>
+          </div>
+          <label class="input-row">
+            <span>Custom (ms)</span>
+            <input type="number" id="window-custom" min="0.1" max="8.5" step="0.1" value="4.00" style="width:82px" />
+            <button id="window-custom-set">Set</button>
+          </label>
         </div>
-        <label class="offset-input">
-          <span>Level (V)</span>
-          <input type="number" id="trigger-level" step="0.05" value="0.00" />
-        </label>
+        <div class="ctrl-grp">
+          <p class="ctrl-lbl">V Range &mdash; Y axis</p>
+          <div class="btn-row">
+            <button class="range-btn" data-range="0.5">0.5 V</button>
+            <button class="range-btn" data-range="1">1 V</button>
+            <button class="range-btn" data-range="2">2 V</button>
+            <button class="range-btn active" data-range="4">4 V</button>
+          </div>
+          <label class="input-row">
+            <span>Custom (V)</span>
+            <input type="number" id="range-input" step="0.1" min="0.1" value="4" style="width:75px" />
+          </label>
+        </div>
+        <div class="ctrl-grp">
+          <p class="ctrl-lbl">Center &mdash; Y position</p>
+          <div class="btn-row">
+            <button class="center-btn" data-center="-1">-1 V</button>
+            <button class="center-btn" data-center="-0.5">-0.5 V</button>
+            <button class="center-btn active" data-center="0">0 V</button>
+            <button class="center-btn" data-center="0.5">+0.5 V</button>
+            <button class="center-btn" data-center="1">+1 V</button>
+          </div>
+          <label class="input-row">
+            <span>Manual (V)</span>
+            <input type="number" id="center-input" step="0.1" value="0" style="width:75px" />
+          </label>
+        </div>
+        <div class="ctrl-grp">
+          <p class="ctrl-lbl">Acquisition</p>
+          <div class="btn-row">
+            <button id="toggle-stream">Pause</button>
+            <button class="cursor-btn" data-cursor="A">Set Cursor A</button>
+            <button class="cursor-btn" data-cursor="B">Set Cursor B</button>
+            <button id="clear-cursors">Clear Cursors</button>
+          </div>
+        </div>
+        <div class="ctrl-grp">
+          <p class="ctrl-lbl">Trigger</p>
+          <div class="btn-row">
+            <button id="trigger-toggle">Trigger: Off</button>
+            <button class="trig-edge-btn active" data-edge="rising">Rising &#x2191;</button>
+            <button class="trig-edge-btn" data-edge="falling">Falling &#x2193;</button>
+            <button class="trig-ch-btn active" data-ch="0">CH A</button>
+            <button class="trig-ch-btn" data-ch="1">CH B</button>
+          </div>
+          <label class="input-row">
+            <span>Level (V)</span>
+            <input type="number" id="trigger-level" step="0.05" value="0.00" style="width:75px" />
+          </label>
+        </div>
+        <div class="ctrl-grp">
+          <p class="ctrl-lbl">Bode Plot</p>
+          <div class="btn-row">
+            <button id="bode-start-btn">Run Bode Sweep</button>
+            <button id="bode-back-btn" style="display:none">&#x2190; Back to Scope</button>
+          </div>
+          <label class="input-row">
+            <span>Dwell (ms)</span>
+            <input id="bode-dwell" type="number" min="10" max="2000" step="5" value="50" style="width:75px" />
+          </label>
+          <p class="bode-status" id="bode-status"></p>
+        </div>
       </div>
     </div>
 
     <div class="status-bar">
-      <span>Last update: <strong id="last-update">--</strong></span>
-      <span>Sample window: <strong id="window-label">--</strong></span>
+      <span>Updated: <strong id="last-update">--</strong></span>
+      <span>Window: <strong id="window-label">--</strong></span>
       <span>Range: <strong id="range-display">4.00 V</strong></span>
       <span>Center: <strong id="center-display">0.00 V</strong></span>
       <span>Trigger: <strong id="trigger-status">Off</strong></span>
@@ -806,68 +414,56 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
 
     <div id="legend" class="legend"></div>
 
-    <section class="measurements">
-      <div class="measurements-header">
-        <h2>Cursor Measurements</h2>
-        <p id="cursor-status">Select Cursor A or B, then click the plot to place it.</p>
-      </div>
-      <div id="cursor-values" class="cursor-values"></div>
-      <div id="delta-summary" class="delta-summary">Δt: -- s</div>
-    </section>
-
-    <section class="sig-measurements">
-      <h2>Signal Measurements</h2>
-      <div class="sig-meas-channels" id="sig-meas-channels"></div>
-    </section>
-
-    <section class="lab-grid" style="margin-top:1.5rem">
-      <div class="panel-header">
+    <div class="ts">
+      <div class="ts-head"><span>&gt; MEASUREMENTS</span></div>
+      <div class="ts-body" style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem;">
         <div>
-          <p class="eyebrow">ADS1115 SENSORS</p>
-          <h2 class="section-title">External ADC Readings</h2>
+          <p style="font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:#00e060;margin-bottom:.3rem;">Cursors</p>
+          <p id="cursor-status">Select Cursor A or B, then click the plot to place it.</p>
+          <div id="cursor-values" class="meas-grid"></div>
+          <div id="delta-summary" class="delta-summary">&#916;t: -- s</div>
         </div>
-        <span class="panel-chip">I&#xB2;C 0x48</span>
-      </div>
-      <div class="meter-grid" style="margin-top:1rem">
-        <div class="meter-card">
-          <p class="meter-label">Resistance</p>
-          <p class="meter-value" id="ads-ohms">--</p>
-          <p class="meter-meta" id="ads-raw0">AIN0: --</p>
-          <button class="ads-measure-btn" data-ch="0" style="margin-top:0.5rem">Measure</button>
-        </div>
-        <div class="meter-card">
-          <p class="meter-label">Current</p>
-          <p class="meter-value" id="ads-amps">--</p>
-          <p class="meter-meta" id="ads-raw1">AIN1: --</p>
-          <button class="ads-measure-btn" data-ch="1" style="margin-top:0.5rem">Measure</button>
-        </div>
-        <div class="meter-card">
-          <p class="meter-label">DC Voltage</p>
-          <p class="meter-value" id="ads-dc">--</p>
-          <p class="meter-meta" id="ads-raw2">AIN2&#x2012;3: --</p>
-          <button class="ads-measure-btn" data-ch="2" style="margin-top:0.5rem">Measure</button>
-        </div>
-      </div>
-    </section>
-
-    <section class="lab-grid">
-      <div class="panel-header">
         <div>
-          <p class="eyebrow">INSTRUMENT PANEL</p>
-          <h2 class="section-title">Meters & Generators</h2>
-          <p class="panel-copy">SPI-ready power supply and waveform generator controls.</p>
+          <p style="font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:#00e060;margin-bottom:.3rem;">Signal</p>
+          <div class="sig-meas-channels" id="sig-meas-channels"></div>
         </div>
-        <span class="panel-chip">AD9833 + MCP41010</span>
       </div>
+    </div>
 
-      <div class="control-grid">
-        <div class="control-panel">
-          <div class="panel-title-row">
-            <h3>Power Supply</h3>
-            <span class="panel-chip">MIC24045</span>
+    <div class="ts">
+      <div class="ts-head"><span>&gt; ADS1115 SENSORS</span><span>I&#xB2;C 0x48</span></div>
+      <div class="ts-body">
+        <div class="meter-grid">
+          <div class="meter-card">
+            <p class="meter-label">Resistance</p>
+            <p class="meter-value" id="ads-ohms">--</p>
+            <p class="meter-meta" id="ads-raw0">AIN0: --</p>
+            <button class="ads-measure-btn" data-ch="0" style="margin-top:.38rem">Measure</button>
           </div>
-          <p class="panel-copy">Set output voltage over I&sup2;C. Valid: 0.640&ndash;3.420&thinsp;V and 4.750&ndash;5.250&thinsp;V.</p>
-          <div class="supply-grid">
+          <div class="meter-card">
+            <p class="meter-label">Current</p>
+            <p class="meter-value" id="ads-amps">--</p>
+            <p class="meter-meta" id="ads-raw1">AIN1: --</p>
+            <button class="ads-measure-btn" data-ch="1" style="margin-top:.38rem">Measure</button>
+          </div>
+          <div class="meter-card">
+            <p class="meter-label">DC Voltage</p>
+            <p class="meter-value" id="ads-dc">--</p>
+            <p class="meter-meta" id="ads-raw2">AIN2&#x2012;3: --</p>
+            <button class="ads-measure-btn" data-ch="2" style="margin-top:.38rem">Measure</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ts">
+      <div class="ts-head"><span>&gt; INSTRUMENT PANEL</span><span>AD9833 + MCP41010</span></div>
+      <div class="ts-body">
+        <p style="font-size:.72rem;color:var(--ad);margin-bottom:.65rem">SPI power supply and waveform generator controls.</p>
+        <div class="two-col">
+          <div class="instr-panel">
+            <div class="instr-ph"><span>Power Supply</span><span class="chip">MIC24045</span></div>
+            <p class="instr-desc">Set output over I&sup2;C. Valid: 0.640&ndash;3.420&thinsp;V and 4.750&ndash;5.250&thinsp;V.</p>
             <div class="supply-card">
               <div class="supply-heading">Supply A</div>
               <div class="supply-input-row">
@@ -878,57 +474,56 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
               <p class="supply-status" id="supply-a-status">Waiting for input&hellip;</p>
             </div>
           </div>
-        </div>
-        <div class="control-panel">
-          <div class="panel-title-row">
-            <h3>Waveform Generator</h3>
-            <span class="panel-chip">SPI Controlled</span>
+          <div class="instr-panel">
+            <div class="instr-ph"><span>Waveform Generator</span><span class="chip">SPI</span></div>
+            <p class="instr-desc">Select shape to push to the generator.</p>
+            <div class="btn-row">
+              <button class="waveform-btn active" data-wave="square">Square</button>
+              <button class="waveform-btn" data-wave="sine">Sine</button>
+              <button class="waveform-btn" data-wave="triangle">Triangle</button>
+            </div>
+            <div class="wave-grid">
+              <div class="wave-field">
+                <label for="waveform-frequency">Frequency (Hz)</label>
+                <input id="waveform-frequency" type="number" min="0.1" step="0.1" value="1000" />
+              </div>
+              <div class="wave-field">
+                <label for="waveform-amplitude">Amplitude (Vpp)</label>
+                <input id="waveform-amplitude" type="number" min="0" max="5" step="0.1" value="1.0" />
+              </div>
+              <div class="wave-field">
+                <label for="waveform-offset">Offset (V)</label>
+                <input id="waveform-offset" type="number" min="-5" max="5" step="0.1" value="0.0" />
+              </div>
+              <div class="wave-field">
+                <label for="waveform-phase">Phase (&deg;)</label>
+                <input id="waveform-phase" type="number" min="0" max="360" step="1" value="0" />
+              </div>
+            </div>
+            <div class="gain-row">
+              <label>Gain Output</label>
+              <button class="gain-btn" data-gain-step="65">0.5 V</button>
+              <button class="gain-btn" data-gain-step="165">1.0 V</button>
+              <button class="gain-btn" data-gain-step="255">1.7 V</button>
+              <p class="gain-pot-display" id="gain-pot-display"></p>
+            </div>
+            <p class="waveform-status" id="waveform-status">Waiting for selection&hellip;</p>
           </div>
-          <p class="panel-copy">Select the shape to push to the generator.</p>
-          <div class="button-row wave-buttons">
-            <button class="waveform-btn active" data-wave="square">Square</button>
-            <button class="waveform-btn" data-wave="sine">Sine</button>
-            <button class="waveform-btn" data-wave="triangle">Triangle</button>
-          </div>
-          <div class="waveform-grid">
-            <div class="waveform-field">
-              <label for="waveform-frequency">Frequency (Hz)</label>
-              <input id="waveform-frequency" type="number" min="0.1" step="0.1" value="1000" />
-            </div>
-            <div class="waveform-field">
-              <label for="waveform-amplitude">Amplitude (Vpp)</label>
-              <input id="waveform-amplitude" type="number" min="0" max="5" step="0.1" value="1.0" />
-            </div>
-            <div class="waveform-field">
-              <label for="waveform-offset">Offset (V)</label>
-              <input id="waveform-offset" type="number" min="-5" max="5" step="0.1" value="0.0" />
-            </div>
-            <div class="waveform-field">
-              <label for="waveform-phase">Phase (&deg;)</label>
-              <input id="waveform-phase" type="number" min="0" max="360" step="1" value="0" />
-            </div>
-          </div>
-          <p class="waveform-status" id="waveform-status">Waiting for selection…</p>
         </div>
       </div>
-    </section>
+    </div>
 
   </div>
 
-  <!-- Help button (fixed, bottom-right) -->
   <div class="conn-pill" id="conn-pill">
     <span class="conn-dot" id="conn-dot"></span>
     <span id="conn-label">Connecting&hellip;</span>
   </div>
   <button class="help-btn" id="help-open-btn" title="Help">?</button>
-
-  <!-- Backdrop -->
   <div class="help-overlay" id="help-overlay"></div>
-
-  <!-- Slide-in drawer -->
   <aside class="help-drawer" id="help-drawer">
     <div class="help-drawer-header">
-      <h2>Help</h2>
+      <h2>&gt; HELP</h2>
       <button class="help-close-btn" id="help-close-btn">&times;</button>
     </div>
     <div class="help-tabs" id="help-tabs">
@@ -968,6 +563,10 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
     const cursorColors = { A: "#facc15", B: "#38bdf8" };
     let pollHandle = null;
     let dpr = 1;
+    let bodeDpr    = 1;
+    let bodeMode   = false;
+    let bodePoints = [];   // [{i, f, gain, phase}]
+    let bodeEvtSrc = null; // active EventSource
     let lastSuccessMs = Date.now();  // updated on every successful ESP32 fetch
     const geometry = { left: 60, right: 20, top: 20, bottom: 70, plotWidth: 0, plotHeight: 0, stepX: 0 };
 
@@ -1291,10 +890,10 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
       const minVoltage    = displayCenter - displayRange / 2;
       const maxVoltage    = displayCenter + displayRange / 2;
       const verticalRange = displayRange;
-      const axisFont      = (isNarrow ? "11px" : "13px") + " 'Segoe UI', sans-serif";
+      const axisFont      = (isNarrow ? "11px" : "12px") + " 'Courier New',Courier,monospace";
 
-      ctx.strokeStyle = "rgba(226, 232, 240, 0.2)";
-      ctx.fillStyle = "#cbd5f5";
+      ctx.strokeStyle = "rgba(232,232,232,0.13)";
+      ctx.fillStyle = "#e8e8e8";
       ctx.font = axisFont;
       ctx.textAlign = "right";
       ctx.textBaseline = "middle";
@@ -1315,8 +914,8 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
         const windowMs     = (maxPoints - 1) * effectivePeriodUs / 1000;
         const tickInterval = calcNiceInterval(windowMs, isNarrow ? 3 : 5);
         const tickY        = top + geometry.plotHeight;
-        ctx.strokeStyle    = "rgba(226, 232, 240, 0.35)";
-        ctx.fillStyle      = "#cbd5f5";
+        ctx.strokeStyle    = "rgba(232,232,232,0.22)";
+        ctx.fillStyle      = "#e8e8e8";
         ctx.font           = axisFont;
         ctx.textAlign      = "center";
         ctx.textBaseline   = "top";
@@ -1396,7 +995,7 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
         ctx.globalAlpha = 1;
         const arrow = triggerEdge === "rising" ? "\u2191" : "\u2193";
         ctx.fillStyle = "#fbbf24";
-        ctx.font = (isNarrow ? "10px" : "11px") + " 'Segoe UI', sans-serif";
+        ctx.font = (isNarrow ? "9px" : "11px") + " 'Courier New',Courier,monospace";
         ctx.textAlign = "right";
         ctx.textBaseline = "bottom";
         ctx.fillText(arrow + " " + triggerLevel.toFixed(2) + " V", left + geometry.plotWidth - 4, tY - 2);
@@ -1430,7 +1029,7 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
       ctx.setLineDash([]);
       ctx.fillStyle = color;
       ctx.globalAlpha = isPreview ? 0.7 : 1;
-      ctx.font = (isNarrow ? "10px" : "12px") + " 'Segoe UI', sans-serif";
+      ctx.font = (isNarrow ? "10px" : "11px") + " 'Courier New',Courier,monospace";
       const label = isPreview ? `${key}?` : key;
       ctx.fillText(label, x + 5, geometry.top + 8);
     }
@@ -1440,6 +1039,13 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
       canvas.width  = Math.round(canvas.offsetWidth  * dpr);
       canvas.height = Math.round(canvas.offsetHeight * dpr);
       drawGraph();
+      const bc = document.getElementById("bode-canvas");
+      if (bc && bc.offsetWidth > 0) {
+        bodeDpr = window.devicePixelRatio || 1;
+        bc.width  = Math.round(bc.offsetWidth  * bodeDpr);
+        bc.height = Math.round(bc.offsetHeight * bodeDpr);
+        if (bodeMode) drawBodePlot();
+      }
     }
 
     function ensureCursorValidity() {
@@ -1503,11 +1109,11 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
           const valueB = getValueForCursor(idx, "B");
           const delta = valueA !== null && valueB !== null ? valueB - valueA : null;
           return `
-            <div class="cursor-card">
-              <h3>${label}</h3>
+            <div class="meas-card">
+              <h3 style="color:${colors[idx]}">${label}</h3>
               <p>A: ${formatValue(valueA)}</p>
               <p>B: ${formatValue(valueB)}</p>
-              <p>ΔV: ${formatValue(delta)}</p>
+              <p style="color:#ffd700">&#916;V: ${formatValue(delta)}</p>
             </div>
           `;
         })
@@ -1768,6 +1374,8 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
         }
         if (typeof confirmedCfg.amplitude === "number" && waveformAmplitudeEl) {
           waveformAmplitudeEl.value = clampWaveformAmplitude(confirmedCfg.amplitude);
+          document.querySelectorAll(".gain-btn[data-gain-step]").forEach(b => b.classList.remove("active"));
+          updatePotDisplay(voltsToPot(confirmedCfg.amplitude));
         }
         if (typeof confirmedCfg.offset === "number" && waveformOffsetEl) {
           waveformOffsetEl.value = clampWaveformOffset(confirmedCfg.offset);
@@ -1828,6 +1436,243 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
       }
     }
 
+    // ── Bode Plot ─────────────────────────────────────────────────────────────
+
+    function drawBodePlot() {
+      const bc = document.getElementById("bode-canvas");
+      if (!bc) return;
+      const bctx = bc.getContext("2d");
+      const w = bc.width / bodeDpr;
+      const h = bc.height / bodeDpr;
+
+      bctx.save();
+      bctx.scale(bodeDpr, bodeDpr);
+      bctx.clearRect(0, 0, w, h);
+
+      const L = 58, R = 12, T = 18, B = 34, GAP = 10;
+      const plotW  = w - L - R;
+      const totalH = h - T - B;
+      const magH   = Math.floor((totalH - GAP) * 0.58);
+      const phaseH = totalH - GAP - magH;
+      const magT   = T;
+      const magBot = magT + magH;
+      const phaseT = magBot + GAP;
+
+      const F_MIN = 10, F_MAX = 6000;
+      const logFMin = Math.log10(F_MIN), logFMax = Math.log10(F_MAX);
+      function xF(f) {
+        return L + (Math.log10(Math.max(f, F_MIN)) - logFMin) /
+               (logFMax - logFMin) * plotW;
+      }
+
+      // Auto-scale dB axis from collected data.
+      let dbLo = -40, dbHi = 10;
+      if (bodePoints.length > 0) {
+        const gains = bodePoints.map(p => p.gain).filter(isFinite);
+        if (gains.length) {
+          dbLo = Math.floor((Math.min(...gains) - 5) / 10) * 10;
+          dbHi = Math.ceil( (Math.max(...gains) + 5) / 10) * 10;
+          if (dbHi - dbLo < 20) dbHi = dbLo + 20;
+        }
+      }
+      function yDb(db) {
+        return magT + magH * (1 - (db - dbLo) / (dbHi - dbLo));
+      }
+      function yPh(deg) {
+        return phaseT + phaseH * (1 - (deg + 180) / 360);
+      }
+
+      const GRID  = "rgba(232,232,232,0.12)";
+      const GRID0 = "rgba(232,232,232,0.35)";
+      const LABEL = "#e8e8e8";
+      const C_MAG = "#e8e8e8";
+      const C_PH  = "#00ccff";
+      const FONT  = `${Math.max(10, Math.min(12, Math.floor(w / 85)))}px 'Courier New',Courier,monospace`;
+
+      // Frequency grid lines + x-axis labels.
+      const fTicks = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000];
+      bctx.lineWidth = 1;
+      bctx.font = FONT;
+      fTicks.forEach(f => {
+        const x = xF(f);
+        bctx.strokeStyle = GRID;
+        bctx.beginPath(); bctx.moveTo(x, magT); bctx.lineTo(x, phaseT + phaseH); bctx.stroke();
+        bctx.fillStyle = LABEL;
+        bctx.textAlign = "center";
+        bctx.textBaseline = "top";
+        bctx.fillText(f >= 1000 ? (f / 1000) + "k" : String(f), x, phaseT + phaseH + 3);
+      });
+
+      // dB grid + labels.
+      const dbStep = (dbHi - dbLo) <= 40 ? 10 : 20;
+      bctx.textAlign = "right";
+      bctx.textBaseline = "middle";
+      for (let db = dbLo; db <= dbHi; db += dbStep) {
+        const y = yDb(db);
+        if (y < magT - 1 || y > magBot + 1) continue;
+        bctx.strokeStyle = db === 0 ? GRID0 : GRID;
+        bctx.lineWidth   = db === 0 ? 1.5 : 1;
+        bctx.beginPath(); bctx.moveTo(L, y); bctx.lineTo(L + plotW, y); bctx.stroke();
+        bctx.fillStyle = LABEL;
+        bctx.fillText(db + " dB", L - 4, y);
+      }
+
+      // Phase grid + labels.
+      const phTicks = [-180, -90, 0, 90, 180];
+      phTicks.forEach(deg => {
+        const y = yPh(deg);
+        bctx.strokeStyle = deg === 0 ? GRID0 : GRID;
+        bctx.lineWidth   = deg === 0 ? 1.5 : 1;
+        bctx.beginPath(); bctx.moveTo(L, y); bctx.lineTo(L + plotW, y); bctx.stroke();
+        bctx.fillStyle = LABEL;
+        bctx.textAlign = "right";
+        bctx.textBaseline = "middle";
+        bctx.fillText(deg + "\u00b0", L - 4, y);
+      });
+
+      // Panel outlines.
+      bctx.strokeStyle = "rgba(232,232,232,0.35)";
+      bctx.lineWidth = 1;
+      bctx.strokeRect(L, magT, plotW, magH);
+      bctx.strokeRect(L, phaseT, plotW, phaseH);
+
+      // Panel labels.
+      bctx.font = FONT;
+      bctx.textAlign = "left";
+      bctx.textBaseline = "top";
+      bctx.fillStyle = C_MAG;
+      bctx.fillText("Gain (dB)", L + 4, magT + 3);
+      bctx.fillStyle = C_PH;
+      bctx.fillText("Phase (\u00b0)", L + 4, phaseT + 3);
+
+      // X axis title.
+      bctx.fillStyle = LABEL;
+      bctx.textAlign = "center";
+      bctx.textBaseline = "bottom";
+      bctx.fillText("Frequency (Hz)", L + plotW / 2, h - 2);
+
+      if (bodePoints.length < 1) { bctx.restore(); return; }
+
+      // Clip data lines to the plot panels.
+      bctx.save();
+      bctx.beginPath();
+      bctx.rect(L, magT, plotW, phaseT + phaseH - magT);
+      bctx.clip();
+
+      // Magnitude line + dots.
+      bctx.strokeStyle = C_MAG;
+      bctx.lineWidth = 2;
+      bctx.lineJoin = "round";
+      bctx.beginPath();
+      bodePoints.forEach((p, i) => {
+        const x = xF(p.f), y = yDb(p.gain);
+        i === 0 ? bctx.moveTo(x, y) : bctx.lineTo(x, y);
+      });
+      bctx.stroke();
+      bodePoints.forEach(p => {
+        bctx.fillStyle = C_MAG;
+        bctx.beginPath();
+        bctx.arc(xF(p.f), yDb(p.gain), 2.5, 0, 2 * Math.PI);
+        bctx.fill();
+      });
+
+      // Phase line + dots.
+      bctx.strokeStyle = C_PH;
+      bctx.lineWidth = 2;
+      bctx.beginPath();
+      bodePoints.forEach((p, i) => {
+        const x = xF(p.f), y = yPh(p.phase);
+        i === 0 ? bctx.moveTo(x, y) : bctx.lineTo(x, y);
+      });
+      bctx.stroke();
+      bodePoints.forEach(p => {
+        bctx.fillStyle = C_PH;
+        bctx.beginPath();
+        bctx.arc(xF(p.f), yPh(p.phase), 2.5, 0, 2 * Math.PI);
+        bctx.fill();
+      });
+
+      bctx.restore(); // remove clip
+      bctx.restore(); // remove scale
+    }
+
+    function enterBodeMode() {
+      bodeMode = true;
+      isPaused = true;
+      if (pollHandle) { clearTimeout(pollHandle); pollHandle = null; }
+      canvas.style.display = "none";
+      const bc = document.getElementById("bode-canvas");
+      if (bc) {
+        bc.style.display = "";
+        bodeDpr = window.devicePixelRatio || 1;
+        bc.width  = Math.round(bc.offsetWidth  * bodeDpr);
+        bc.height = Math.round(bc.offsetHeight * bodeDpr);
+        drawBodePlot();
+      }
+      const startBtn = document.getElementById("bode-start-btn");
+      const backBtn  = document.getElementById("bode-back-btn");
+      if (startBtn) startBtn.style.display = "none";
+      if (backBtn)  backBtn.style.display  = "";
+    }
+
+    function exitBodeMode() {
+      bodeMode = false;
+      if (bodeEvtSrc) { bodeEvtSrc.close(); bodeEvtSrc = null; }
+      const bc = document.getElementById("bode-canvas");
+      if (bc) bc.style.display = "none";
+      canvas.style.display = "";
+      const startBtn = document.getElementById("bode-start-btn");
+      const backBtn  = document.getElementById("bode-back-btn");
+      if (startBtn) startBtn.style.display = "";
+      if (backBtn)  backBtn.style.display  = "none";
+      const statusEl = document.getElementById("bode-status");
+      if (statusEl) statusEl.textContent = "";
+      isPaused = false;
+      schedulePoll();
+    }
+
+    function startBodeSweep() {
+      bodePoints = [];
+      enterBodeMode();
+      const dwell = Math.max(10, Math.min(2000,
+        parseInt(document.getElementById("bode-dwell")?.value ?? "50", 10) || 50));
+      const statusEl = document.getElementById("bode-status");
+      if (statusEl) statusEl.textContent = "Sweep running\u2026";
+
+      bodeEvtSrc = new EventSource(`/bode/start?dwell_ms=${dwell}`);
+
+      bodeEvtSrc.onmessage = e => {
+        try {
+          const d = JSON.parse(e.data);
+          if (d.done) {
+            if (statusEl) statusEl.textContent =
+              `Sweep complete \u2014 ${bodePoints.length} points.`;
+            bodeEvtSrc.close(); bodeEvtSrc = null;
+            return;
+          }
+          if (typeof d.f === "number" && typeof d.gain === "number") {
+            bodePoints.push(d);
+            if (statusEl) {
+              const fStr = d.f >= 1000
+                ? (d.f / 1000).toFixed(2) + " kHz"
+                : d.f.toFixed(1) + " Hz";
+              statusEl.textContent =
+                `Measuring\u2026 ${fStr} (${bodePoints.length}/50)`;
+            }
+            drawBodePlot();
+          }
+        } catch (err) { console.error("Bode SSE parse error", err); }
+      };
+
+      bodeEvtSrc.onerror = () => {
+        if (!bodeEvtSrc) return; // already closed by done handler
+        if (statusEl) statusEl.textContent = "Connection error during sweep.";
+        bodeEvtSrc.close(); bodeEvtSrc = null;
+      };
+    }
+
+    // ── End Bode ──────────────────────────────────────────────────────────────
+
     function initBenchControls() {
       supplyChannels.forEach(bindSupplyChannel);
       waveformButtons.forEach(btn =>
@@ -1837,6 +1682,38 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
         if (!input) return;
         input.addEventListener("change", () => setWaveform(activeWaveform));
       });
+      const gainPotDisplayEl = document.getElementById("gain-pot-display");
+
+      // Calibrated linear fit matching firmware: pot = 156.422 * V - 5.183
+      function voltsToPot(v) {
+        return Math.max(0, Math.min(255, Math.round(156.422 * v - 5.183)));
+      }
+
+      function updatePotDisplay(potValue) {
+        if (gainPotDisplayEl) gainPotDisplayEl.textContent = `Digipot: ${potValue}`;
+      }
+
+      async function sendDigipot(rawValue) {
+        const clamped = Math.max(0, Math.min(255, Math.round(rawValue)));
+        updatePotDisplay(clamped);
+        try {
+          await fetch(`/digipot?value=${clamped}`, { method: "POST" });
+        } catch (err) {
+          console.error("Digipot request failed", err);
+        }
+      }
+
+      document.querySelectorAll(".gain-btn[data-gain-step]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".gain-btn[data-gain-step]").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          sendDigipot(parseInt(btn.dataset.gainStep, 10));
+        });
+      });
+      const bodeStartBtn = document.getElementById("bode-start-btn");
+      const bodeBackBtn  = document.getElementById("bode-back-btn");
+      if (bodeStartBtn) bodeStartBtn.addEventListener("click", startBodeSweep);
+      if (bodeBackBtn)  bodeBackBtn.addEventListener("click", exitBodeMode);
       fetchControlState();
     }
 
@@ -2179,6 +2056,55 @@ const char INDEX_HTML[] PROGMEM = R"HTML(
         const el = document.getElementById(id);
         if (!el) return;
         el.addEventListener("change", () => postDevConfig(toPatch(el.value)));
+      });
+
+      // ── Bode plot injector ────────────────────────────────────────────────────
+      document.getElementById("dev-bode-inject").addEventListener("click", () => {
+        const type   = document.getElementById("dev-bode-type").value;
+        const fc     = parseFloat(document.getElementById("dev-bode-fc").value)    || 500;
+        const dcGain = parseFloat(document.getElementById("dev-bode-gain").value)  || 0;
+        const Q      = parseFloat(document.getElementById("dev-bode-q").value)     || 0.707;
+        const noise  = parseFloat(document.getElementById("dev-bode-noise").value) || 0;
+        const K      = Math.pow(10, dcGain / 20);
+
+        // Box-Muller normal sample, scaled to noise rms
+        function rn(scale) {
+          const u = Math.random() || 1e-10, v = Math.random();
+          return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v) * scale;
+        }
+
+        const N = 50, fMin = 10, fMax = 6000;
+        bodePoints = [];
+        for (let i = 0; i < N; i++) {
+          const f = fMin * Math.pow(fMax / fMin, i / (N - 1));
+          const r = f / fc;
+          let gain, phase;
+
+          if (type === "lp1") {
+            gain  = 20 * Math.log10(K / Math.sqrt(1 + r * r));
+            phase = -Math.atan(r) * 180 / Math.PI;
+          } else if (type === "hp1") {
+            gain  = 20 * Math.log10(K * r / Math.sqrt(1 + r * r));
+            phase = 90 - Math.atan(r) * 180 / Math.PI;
+          } else if (type === "lp2") {
+            const re = 1 - r * r, im = r / Q;
+            gain  = 20 * Math.log10(K / Math.sqrt(re * re + im * im));
+            phase = -Math.atan2(im, re) * 180 / Math.PI;
+          } else {                          // bp2
+            const re = 1 - r * r, im = r / Q;
+            gain  = 20 * Math.log10(K * (r / Q) / Math.sqrt(re * re + im * im));
+            phase = Math.atan2(re, im) * 180 / Math.PI;
+          }
+
+          if (noise > 0) { gain += rn(noise); phase += rn(noise * 8); }
+          bodePoints.push({ f, gain, phase });
+        }
+
+        enterBodeMode();
+        drawBodePlot();
+        const statusEl = document.getElementById("bode-status");
+        if (statusEl) statusEl.textContent =
+          `[DEV] ${type.toUpperCase()} \u2014 fc=${fc}Hz, Q=${Q}, ${N} pts injected.`;
       });
     })();
 

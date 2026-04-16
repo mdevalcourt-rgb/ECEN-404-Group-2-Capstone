@@ -29,6 +29,14 @@ class Ad7356Sampler {
   // bufA and bufB must each hold at least `count` uint16_t values (12-bit).
   // periodUs: inter-sample period in microseconds (min 17 → ~59 kHz, default fast mode).
   void readBurst(uint16_t *bufA, uint16_t *bufB, size_t count, uint32_t periodUs = 17) const;
+
+  // Single-frequency DFT via the Goertzel algorithm.
+  // Evaluates the DFT of `buf` at exactly `freq` Hz (non-integer bin is fine).
+  // DC is removed before processing to suppress ADC bias leakage.
+  // mag:   peak amplitude in ADC counts (use ratio magB/magA for gain).
+  // phase: phase in radians [-π, π].
+  static void binDFT(const uint16_t *buf, size_t n, float freq, float fs,
+                     float *mag, float *phase);
   size_t channelCount() const { return kLabels.size(); }
   const char *label(size_t index) const { return kLabels[index]; }
 

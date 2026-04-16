@@ -20,12 +20,15 @@ class Ad9833Driver {
   void begin();
 
   // Apply all parameters in one call.
-  // mode         : "sine" | "triangle" | "square"
-  // hz           : 0.1 – 12.5 MHz (AD9833 limit with 25 MHz MCLK)
-  // amplitudeVpp : desired peak-to-peak output in volts;
-  //               hardware range ≈ 2.0–4.0 Vpp (1.0–2.0 Vpk with ×4 gain stage)
-  // phaseDeg     : phase offset in degrees (0–360), written to PHASE0 register
-  void apply(const String& mode, float hz, float amplitudeVpp, float phaseDeg = 0.0f);
+  // mode        : "sine" | "triangle" | "square"
+  // hz          : 0.1 – 12.5 MHz (AD9833 limit with 25 MHz MCLK)
+  // targetV     : desired output voltage (V); mapped to digipot via calibrated fit
+  // phaseDeg    : phase offset in degrees (0–360), written to PHASE0 register
+  void apply(const String& mode, float hz, float targetV, float phaseDeg = 0.0f);
+
+  // Write a raw 8-bit wiper value (0–255) directly to the MCP41010,
+  // bypassing the calibrated fit entirely.
+  void setAmplitudeRaw(uint8_t potValue);
 
  private:
   // SPI pins
@@ -45,15 +48,14 @@ class Ad9833Driver {
   // AD9833 phase register write prefix — DB15:DB14=11, DB13=0 → PHASE0
   static constexpr uint16_t kPhase0Write = 0xC000;
 
-  // MCP41010 amplitude stage:
-  //   AD9833 max output ≈ 0.75 V peak → ×4 op-amp → 3.0 V peak max
-  //   Vpot = (Vpk_desired / kGain) / kVinMax → ratio for digipot
-  static constexpr float kGain   = 4.0f;
-  static constexpr float kVinMax = 0.75f;
+  // MCP41010 amplitude calibration — least-squares fit through three
+  // confirmed hardware measurements: (0.5 V → 65), (1.0 V → 165), (1.7 V → 255).
+  //   pot = kCalSlope * targetV + kCalOffset   (clamped to [0, 255])
+  static constexpr float kCalSlope  = 156.422f;
+  static constexpr float kCalOffset = -5.183f;
 
   void writeAD9833(uint16_t data);
   void setFrequency(float hz);
   void setPhase(float degrees);
   void setWaveformShape(const String& mode);
-  void setAmplitudeVpk(float vpk);
 };

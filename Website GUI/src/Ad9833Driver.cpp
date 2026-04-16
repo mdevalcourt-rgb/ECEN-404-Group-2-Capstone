@@ -53,13 +53,7 @@ void Ad9833Driver::setWaveformShape(const String& mode) {
   writeAD9833(ctrl);
 }
 
-void Ad9833Driver::setAmplitudeVpk(float vpk) {
-  if (vpk < 0.0f) vpk = 0.0f;
-  const float vin   = vpk / kGain;
-  const float ratio = vin / kVinMax;
-  const uint8_t potValue =
-      static_cast<uint8_t>(constrain(ratio * 255.0f, 0.0f, 255.0f));
-
+void Ad9833Driver::setAmplitudeRaw(uint8_t potValue) {
   SPI.beginTransaction(SPISettings(500000, MSBFIRST, SPI_MODE0));
   digitalWrite(kPotCsPin, LOW);
   delayMicroseconds(1);
@@ -72,9 +66,11 @@ void Ad9833Driver::setAmplitudeVpk(float vpk) {
 
 // ---------------------------------------------------------------------------
 
-void Ad9833Driver::apply(const String& mode, float hz, float amplitudeVpp, float phaseDeg) {
-  setFrequency(hz);      // sends RESET + FREQ0 words (RESET still asserted)
-  setPhase(phaseDeg);    // writes PHASE0 while RESET is still asserted
+void Ad9833Driver::apply(const String& mode, float hz, float targetV, float phaseDeg) {
+  setFrequency(hz);       // sends RESET + FREQ0 words (RESET still asserted)
+  setPhase(phaseDeg);     // writes PHASE0 while RESET is still asserted
   setWaveformShape(mode); // clears RESET — output starts with the new phase applied
-  setAmplitudeVpk(amplitudeVpp / 2.0f);  // Vpp → Vpk
+  // Calibrated linear fit: pot = kCalSlope * targetV + kCalOffset
+  const float potF = kCalSlope * targetV + kCalOffset;
+  setAmplitudeRaw(static_cast<uint8_t>(constrain(potF, 0.0f, 255.0f)));
 }

@@ -151,6 +151,32 @@ SampleSet Ad7356Sampler::read() const {
   return sample;
 }
 
+// Single-bin DFT (Goertzel algorithm).
+// Evaluates the DFT at exactly `freq` Hz — no need for coherent sampling.
+// DC is subtracted first so the ADC bias doesn't leak into the magnitude.
+void Ad7356Sampler::binDFT(const uint16_t *buf, size_t n, float freq, float fs,
+                            float *mag, float *phase) {
+  // Remove DC offset.
+  float mean = 0.0f;
+  for (size_t i = 0; i < n; i++) mean += static_cast<float>(buf[i]);
+  mean /= static_cast<float>(n);
+
+  // Goertzel: 2nd-order IIR that accumulates DFT at a single frequency.
+  const float omega = 2.0f * static_cast<float>(M_PI) * freq / fs;
+  const float coeff = 2.0f * cosf(omega);
+  float s1 = 0.0f, s2 = 0.0f;
+  for (size_t i = 0; i < n; i++) {
+    const float s0 = (static_cast<float>(buf[i]) - mean) + coeff * s1 - s2;
+    s2 = s1;
+    s1 = s0;
+  }
+  const float re = s1 - s2 * cosf(omega);
+  const float im = s2 * sinf(omega);
+  // Peak amplitude of a real sinusoid = 2|X|/N.
+  *mag   = 2.0f * sqrtf(re * re + im * im) / static_cast<float>(n);
+  *phase = atan2f(im, re);
+}
+
 // Burst capture: collect `count` samples back-to-back as fast as GPIO allows.
 // CS must toggle HIGH between each conversion — the AD7356 only acquires a new
 // sample on the falling edge of CS, so leaving CS low for the whole burst would

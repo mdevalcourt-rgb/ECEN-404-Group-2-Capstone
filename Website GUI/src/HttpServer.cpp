@@ -267,5 +267,92 @@ void setupServerRoutes(Ad7356Sampler &sampler, Ads1115Sampler &ads,
     server.send(200, "application/json", json);
   });
 
+  server.on("/digipot", HTTP_POST, [&wave]() {
+    const int raw = constrain(server.arg("value").toInt(), 0, 255);
+    wave.setAmplitudeRaw(static_cast<uint8_t>(raw));
+    String json = "{\"digipot\":";
+    json += String(raw);
+    json += "}";
+    server.send(200, "application/json", json);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Bode plot sweep — SSE streaming endpoint.
+  // GET /bode/start?dwell_ms=50
+  //
+  // Sweeps 50 log-spaced frequencies from 10 Hz to 6 kHz.
+  // For each point it:
+  //   1. Sets a sine wave at the target frequency (confirmed 1 V: digipot 165).
+  //   2. Waits dwell_ms for the DUT to settle.
+  //   3. Captures 256 samples at an adaptive rate (target 4 cycles per window).
+  //   4. Runs the Goertzel single-bin DFT on CH A (input) and CH B (output).
+  //   5. Streams {"i":N,"f":F,"gain":G,"phase":P} as an SSE event.
+  //
+  // Chunked transfer keeps the connection open for the duration of the sweep.
+  // After the sweep the waveform is restored to its previous state.
+  server.on("/bode/start", HTTP_GET, [&sampler, &wave]() {
+    const int dwellMs = constrain(server.arg("dwell_ms").toInt(), 10, 2000);
+
+    server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    server.sendHeader("Cache-Control", "no-cache");
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    server.send(200, "text/event-stream", "");
+    server.sendContent("retry: 3000\n\n");
+
+    // Sine wave, confirmed 1 V output (digipot raw 165).
+    wave.apply("sine", 10.0f, 1.0f, 0.0f);
+    wave.setAmplitudeRaw(165);
+    delay(200);  // initial settle after enabling output
+
+    constexpr int    kNumPoints = 50;
+    constexpr float  kFstart    = 10.0f;
+    constexpr float  kFend      = 6000.0f;
+    constexpr size_t kN         = 256;   // samples per capture
+    constexpr int    kCycles    = 4;     // target complete cycles per window
+
+    std::vector<uint16_t> bufA(kN), bufB(kN);
+
+    for (int i = 0; i < kNumPoints; i++) {
+      const float freq = kFstart *
+          powf(kFend / kFstart, static_cast<float>(i) / (kNumPoints - 1));
+
+      wave.apply("sine", freq, 1.0f, 0.0f);
+      wave.setAmplitudeRaw(165);
+      delay(dwellMs);
+
+      // Adaptive sample rate: target kCycles full cycles in kN samples.
+      const float    targetFs  = freq * kN / static_cast<float>(kCycles);
+      const uint32_t periodUs  = static_cast<uint32_t>(
+          constrain(1000000.0f / targetFs, 17.0f, 100000.0f));
+      const float    actualFs  = 1000000.0f / static_cast<float>(periodUs);
+
+      sampler.readBurst(bufA.data(), bufB.data(), kN, periodUs);
+
+      float magA = 0.0f, phaseA = 0.0f, magB = 0.0f, phaseB = 0.0f;
+      Ad7356Sampler::binDFT(bufA.data(), kN, freq, actualFs, &magA, &phaseA);
+      Ad7356Sampler::binDFT(bufB.data(), kN, freq, actualFs, &magB, &phaseB);
+
+      const float gainDb = (magA > 1e-4f) ? 20.0f * log10f(magB / magA) : 0.0f;
+      float phaseDeg = (phaseB - phaseA) * (180.0f / static_cast<float>(M_PI));
+      while (phaseDeg >  180.0f) phaseDeg -= 360.0f;
+      while (phaseDeg < -180.0f) phaseDeg += 360.0f;
+
+      String event = "data: {\"i\":";
+      event += i;
+      event += ",\"f\":";    event += String(freq, 2);
+      event += ",\"gain\":"; event += String(gainDb, 2);
+      event += ",\"phase\":";event += String(phaseDeg, 1);
+      event += "}\n\n";
+      server.sendContent(event);
+    }
+
+    server.sendContent("data: {\"done\":true}\n\n");
+    server.sendContent("");  // chunked EOF
+
+    // Restore previous waveform state.
+    wave.apply(waveformCfg.mode, waveformCfg.frequency,
+               waveformCfg.amplitude, waveformCfg.phase);
+  });
+
   server.on("/control-state", []() { server.send(200, "application/json", serializeControlState()); });
 }
