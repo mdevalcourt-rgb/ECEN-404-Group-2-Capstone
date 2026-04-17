@@ -10,11 +10,10 @@ void startAccessPoint(const char *ssid, const char *password) {
     Serial.println("Failed to start access point!");
     return;
   }
+  (void)password;  // not logged — avoid printing the AP password to Serial.
   Serial.println("Access point started.");
   Serial.print("SSID: ");
   Serial.println(ssid);
-  Serial.print("Password: ");
-  Serial.println(password);
   Serial.print("AP IP address: ");
   Serial.println(WiFi.softAPIP());
 }

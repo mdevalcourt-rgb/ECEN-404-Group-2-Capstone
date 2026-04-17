@@ -10,13 +10,11 @@
 #include "OtaUpdater.h"
 #include "WiFiConnector.h"
 
-// Credentials for the ESP32-hosted WiFi network.
-constexpr const char *AP_SSID     = "ESP32-Oscilloscope";
-constexpr const char *AP_PASSWORD = "scopeview123";
-
-// OTA credentials.
-constexpr const char *OTA_HOSTNAME = "esp32-oscilloscope";
-constexpr const char *OTA_PASSWORD = "scopeota123";
+#if __has_include("secrets.h")
+  #include "secrets.h"
+#else
+  #error "Missing include/secrets.h — copy include/secrets.example.h to include/secrets.h and fill in the credentials."
+#endif
 
 Ad7356Sampler  adcSampler;
 Ad9833Driver   wavegen;

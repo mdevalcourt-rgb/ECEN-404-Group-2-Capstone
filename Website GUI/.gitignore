@@ -3,3 +3,6 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+
+# Local credentials — copy secrets.example.h to secrets.h and fill in locally.
+include/secrets.h
